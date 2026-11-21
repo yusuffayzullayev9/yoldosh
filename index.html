@@ -1,0 +1,1497 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1C6FE8">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>*{box-sizing:border-box}html,body{margin:0}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}[hidden]{display:none!important}img{max-width:100%}</style>
+<title>Yo‘ldosh Taksi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@600;700&display=swap">
+<style>
+/* Layout: one-screen phone app. Live town map on top, a bottom sheet for the current task, five service tabs at the bottom. */
+:root{
+  --bg:#E7ECF2; --surface:#FFFFFF; --surface-2:#F1F4F8; --ink:#0F1B2D; --muted:#5A6779; --line:#DAE1EA;
+  --accent:#1C6FE8; --accent-ink:#FFFFFF; --accent-soft:#E2EDFD; --accent-deep:#0B4FB8;
+  --go:#18885A; --danger:#C23B3B; --cargo:#DB8A12; --courier:#0E9A8A; --on-route:#FFFFFF; --shadow:rgba(15,27,45,.14);
+  --r1:#18885A; --r3:#D9541E; --r7:#9C3FA8;
+  --plate-bg:#FFFFFF; --plate-ink:#111111; --flag-b:#1EB3E3; --flag-g:#1EA35A; --flag-r:#CE1126;
+  --map-ground:#E4EAF0; --map-block:#D5DDE7; --map-bldg:#C5CFDC; --map-road:#FFFFFF; --map-edge:#BBC6D4;
+  --map-main:#D5E5FB; --map-water:#A6C8EA; --map-park:#CDE2D0; --map-tree:#9AC6A1; --map-label:#33435A; --map-halo:#F2F5F9;
+  --font-display:"Unbounded","Onest",system-ui,sans-serif;
+  --font-body:"Onest",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0B111A; --surface:#121A26; --surface-2:#1A2432; --ink:#E6EDF6; --muted:#93A1B4; --line:#263244;
+    --accent:#3D8BFA; --accent-ink:#FFFFFF; --accent-soft:#16294A; --accent-deep:#8FBAFF;
+    --go:#34B07A; --danger:#E46A6A; --cargo:#F0A93A; --courier:#2CC0AE; --on-route:#FFFFFF; --shadow:rgba(0,0,0,.5);
+    --r1:#2E9E6A; --r3:#E8703F; --r7:#B862C4;
+    --plate-bg:#ECEEE9; --plate-ink:#111111;
+    --map-ground:#111924; --map-block:#172130; --map-bldg:#1F2A3B; --map-road:#2C3A4E; --map-edge:#0B1119;
+    --map-main:#1E3657; --map-water:#183552; --map-park:#16301F; --map-tree:#234A31; --map-label:#AEBBCD; --map-halo:#111924;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0B111A; --surface:#121A26; --surface-2:#1A2432; --ink:#E6EDF6; --muted:#93A1B4; --line:#263244;
+  --accent:#3D8BFA; --accent-ink:#FFFFFF; --accent-soft:#16294A; --accent-deep:#8FBAFF;
+  --go:#34B07A; --danger:#E46A6A; --cargo:#F0A93A; --courier:#2CC0AE; --on-route:#FFFFFF; --shadow:rgba(0,0,0,.5);
+  --r1:#2E9E6A; --r3:#E8703F; --r7:#B862C4;
+  --plate-bg:#ECEEE9; --plate-ink:#111111;
+  --map-ground:#111924; --map-block:#172130; --map-bldg:#1F2A3B; --map-road:#2C3A4E; --map-edge:#0B1119;
+  --map-main:#1E3657; --map-water:#183552; --map-park:#16301F; --map-tree:#234A31; --map-label:#AEBBCD; --map-halo:#111924;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.4;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.app{height:100%;max-width:480px;margin:0 auto;display:flex;flex-direction:column;background:var(--surface);border-inline:1px solid var(--line);overflow:hidden;position:relative}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-block:9px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));border-bottom:1px solid var(--line);background:var(--surface);position:relative;z-index:3}
+.logo{display:flex;align-items:center;gap:9px;font-family:var(--font-display);font-weight:700;font-size:17px;letter-spacing:-.01em;min-width:0}
+.logo-mark{width:28px;height:28px;flex:0 0 28px;border-radius:9px;background:var(--accent);display:grid;place-items:center;color:var(--accent-ink)}
+.logo small{display:block;font-family:var(--font-body);font-weight:500;font-size:11px;color:var(--muted);letter-spacing:0}
+.top-r{display:flex;align-items:center;gap:8px}
+.hbtn{border:0;border-radius:999px;padding:7px 12px;background:var(--accent-soft);color:var(--accent-deep);font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px}
+.hbtn svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.demo{font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border:1px dashed var(--line);border-radius:999px;padding:4px 8px;white-space:nowrap}
+
+.map-wrap{flex:1 1 auto;min-height:180px;position:relative;background:var(--map-ground)}
+#map{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:manipulation;cursor:crosshair}
+.badge{position:absolute;top:10px;left:max(12px,env(safe-area-inset-left,0px));display:flex;align-items:center;gap:7px;padding:6px 11px;border-radius:999px;background:var(--surface);box-shadow:0 2px 10px var(--shadow);font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
+.live-dot{width:8px;height:8px;flex:0 0 8px;border-radius:50%;background:var(--go);animation:live 1.8s infinite}
+@keyframes live{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--go) 55%,transparent)}100%{box-shadow:0 0 0 8px transparent}}
+.toast{position:absolute;top:50px;left:50%;transform:translate(-50%,-8px);opacity:0;pointer-events:none;background:var(--ink);color:var(--surface);font-size:13px;font-weight:600;padding:8px 14px;border-radius:12px;max-width:calc(100% - 32px);text-align:center;transition:opacity .25s,transform .25s;z-index:2}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+.sheet{flex:0 0 auto;max-height:62%;overflow-y:auto;background:var(--surface);border-radius:22px 22px 0 0;margin-top:-20px;position:relative;z-index:2;box-shadow:0 -6px 22px var(--shadow);overscroll-behavior:contain}
+.grip{width:38px;height:4px;border-radius:2px;background:var(--line);margin:8px auto 0}
+.sheet-in{display:flex;flex-direction:column;gap:12px;padding-block:10px 16px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+.tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-top:1px solid var(--line);background:var(--surface);padding-block:5px;padding-left:max(4px,env(safe-area-inset-left,0px));padding-right:max(4px,env(safe-area-inset-right,0px));position:relative;z-index:3}
+.tab{display:flex;flex-direction:column;align-items:center;gap:2px;padding:3px 0;border:0;background:none;color:var(--muted);font-size:11px;font-weight:600;min-width:0}
+.tab svg{width:42px;height:28px;padding:3px 9px;border-radius:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:background .2s}
+.tab[aria-selected="true"]{color:var(--ink)}
+.tab[aria-selected="true"] svg{background:var(--accent-soft);color:var(--accent-deep)}
+
+h2{font-family:var(--font-display);font-weight:600;font-size:18.5px;line-height:1.2;letter-spacing:-.01em;margin:0;text-wrap:balance}
+h3{margin:0;font-size:16px;font-weight:700}
+.status p,.hint{margin:0;color:var(--muted);font-size:13.5px}
+.status{display:flex;flex-direction:column;gap:4px}
+.status.center{align-items:center;text-align:center}
+.num{font-variant-numeric:tabular-nums;font-weight:700;color:var(--ink)}
+
+.seg{display:grid;grid-template-columns:1fr 1fr;padding:3px;border-radius:12px;background:var(--surface-2);gap:3px}
+.seg button{border:0;border-radius:9px;padding:8px 6px;background:none;font-size:13.5px;font-weight:600;color:var(--muted)}
+.seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 4px var(--shadow)}
+
+.trip{border:1px solid var(--line);border-radius:16px}
+.pt{display:flex;align-items:center;gap:12px;padding:11px 14px;min-width:0}
+.pt + .pt{border-top:1px solid var(--line)}
+.pt > div{flex:1;min-width:0}
+.pt small{display:block;font-size:11.5px;color:var(--muted)}
+.pt b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pt b.ph{color:var(--muted);font-weight:500}
+.mk{width:24px;height:24px;flex:0 0 24px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700}
+.mk.a{background:var(--ink);color:var(--surface)}
+.mk.b{background:var(--accent);color:var(--accent-ink)}
+.dist{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.trip.compact .pt{padding:8px 12px}
+
+.chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin-inline:-2px;padding:2px}
+.chips::-webkit-scrollbar,.hscroll::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;padding:8px 13px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-size:13px;font-weight:500;white-space:nowrap}
+.chip.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.chip:disabled{opacity:.45;cursor:not-allowed}
+
+.tariffs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.tariff{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:10px;border-radius:14px;border:1.5px solid var(--line);background:var(--surface);min-width:0}
+.tariff.on{border-color:var(--accent);background:var(--accent-soft)}
+.tariff:disabled{opacity:.45;cursor:not-allowed}
+.tn{font-size:13px;font-weight:600}
+.tp{font-family:var(--font-display);font-weight:600;font-size:13.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tm{font-size:11px;color:var(--muted);line-height:1.3}
+.hscroll{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin-inline:-2px;padding:2px}
+.hscroll .tariff{flex:0 0 122px}
+.tic{width:28px;height:28px;border-radius:8px;background:var(--surface-2);display:grid;place-items:center;margin-bottom:4px;color:var(--courier)}
+.tic svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:52px;padding:0 16px;border:0;border-radius:14px;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:15.5px;transition:transform .1s,opacity .2s}
+.btn:active{transform:scale(.985)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.ghost{background:var(--surface-2);color:var(--ink);font-weight:600}
+.btn.ghost.danger{color:var(--danger)}
+.btn.sm{min-height:40px;font-size:14px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.back{align-self:flex-start;border:0;background:none;padding:2px 0;color:var(--accent-deep);font-weight:600;font-size:14px}
+
+.dcard{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--line);border-radius:16px;flex-wrap:wrap}
+.ava{width:46px;height:46px;flex:0 0 46px;border-radius:50%;background:var(--accent-soft);color:var(--accent-deep);display:grid;place-items:center;font-family:var(--font-display);font-weight:600;font-size:14px}
+.ava.c{background:color-mix(in srgb,var(--courier) 18%,var(--surface));color:var(--courier)}
+.ava.g{background:color-mix(in srgb,var(--cargo) 20%,var(--surface));color:var(--cargo)}
+.dinfo{flex:1;min-width:120px;display:flex;flex-direction:column}
+.dinfo b{font-weight:600}
+.dinfo span{font-size:13px;color:var(--muted)}
+.dinfo .tel{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums;user-select:all}
+.tbadge{font-size:12px;font-weight:700;padding:5px 9px;border-radius:8px;background:color-mix(in srgb,var(--courier) 16%,var(--surface));color:var(--courier);white-space:nowrap}
+.plate{display:inline-flex;align-items:stretch;border:1.5px solid var(--plate-ink);border-radius:5px;background:var(--plate-bg);color:var(--plate-ink);font-weight:700;font-size:13px;line-height:1;letter-spacing:.03em;font-variant-numeric:tabular-nums;white-space:nowrap}
+.plate .reg{padding:5px 5px;border-right:1.5px solid var(--plate-ink)}
+.plate .pn{padding:5px 6px}
+.plate .uz{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:2px 4px;font-size:7px;letter-spacing:0}
+.plate .uz i{display:block;width:12px;height:8px;background:linear-gradient(var(--flag-b) 0 32%,var(--flag-r) 32% 36%,var(--plate-bg) 36% 64%,var(--flag-r) 64% 68%,var(--flag-g) 68%)}
+
+.sum{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:14px;color:var(--muted)}
+.sum b{font-family:var(--font-display);font-weight:600;font-size:16px;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+.prog{height:6px;border-radius:3px;background:var(--surface-2);overflow:hidden}
+.prog i{display:block;height:100%;width:0;background:var(--accent);border-radius:3px;transition:width .35s linear}
+
+.radar{position:relative;width:88px;height:88px;display:grid;place-items:center;margin:4px auto}
+.radar i{position:absolute;inset:0;border-radius:50%;border:2px solid var(--accent);animation:ring 2s ease-out infinite;opacity:0}
+.radar i + i{animation-delay:1s}
+@keyframes ring{0%{transform:scale(.35);opacity:.9}100%{transform:scale(1);opacity:0}}
+.radar span{width:46px;height:46px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center}
+.radar svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+
+.big-price{font-family:var(--font-display);font-weight:700;font-size:30px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.stars{display:flex;gap:6px;justify-content:center}
+.star{border:0;background:none;font-size:30px;line-height:1;color:var(--line);padding:2px}
+.star.on{color:var(--accent)}
+
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field > label,.lbl{font-size:12px;font-weight:600;color:var(--muted)}
+.inp{width:100%;height:46px;border-radius:12px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);padding:0 12px;font:inherit;font-size:15px;min-width:0}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+.code-box{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;background:var(--accent-soft)}
+.code-box small{font-size:12.5px;color:var(--ink);max-width:22ch}
+.code{font-family:var(--font-display);font-weight:700;font-size:24px;letter-spacing:.18em;font-variant-numeric:tabular-nums;color:var(--accent-deep)}
+.err{color:var(--danger);font-size:13px;font-weight:600;margin:0}
+
+/* do'kon va menyu */
+.stores{display:flex;flex-direction:column;gap:8px}
+.store{display:grid;grid-template-columns:46px minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:16px;background:var(--surface);text-align:left;width:100%}
+.sic{width:46px;height:46px;border-radius:12px;background:var(--accent-soft);color:var(--accent-deep);display:grid;place-items:center;font-family:var(--font-display);font-weight:600;font-size:14px}
+.store b{display:block;font-weight:600}
+.store span{font-size:12.5px;color:var(--muted);display:block}
+.store .from{text-align:right;font-size:12px;color:var(--muted);white-space:nowrap}
+.store .from b{font-size:13px;color:var(--ink);font-variant-numeric:tabular-nums}
+.menu{list-style:none;margin:0;padding:0}
+.mi{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.menu li:last-child .mi{border-bottom:0}
+.mi b{display:block;font-weight:600}
+.mi span{font-size:12.5px;color:var(--muted)}
+.mi .pr{font-variant-numeric:tabular-nums;color:var(--ink);font-weight:600}
+.step{display:flex;align-items:center;gap:2px;border-radius:999px;background:var(--surface-2)}
+.step button{width:34px;height:34px;border:0;border-radius:50%;background:none;font-size:18px;font-weight:600;color:var(--accent-deep)}
+.step b{min-width:20px;text-align:center;font-variant-numeric:tabular-nums}
+.add{border:0;border-radius:999px;padding:8px 14px;background:var(--accent-soft);color:var(--accent-deep);font-weight:700;font-size:13px}
+.cartbar{position:sticky;bottom:0;padding-top:4px;background:var(--surface)}
+.bd{display:grid;grid-template-columns:1fr auto;gap:5px 12px;font-size:14px;padding:12px 14px;border-radius:14px;background:var(--surface-2)}
+.bd span:nth-child(even){text-align:right;font-variant-numeric:tabular-nums}
+.bd .neg{color:var(--danger)}
+.bd .tot{font-weight:700;border-top:1px dashed var(--line);padding-top:6px}
+.bd .cap{grid-column:1/-1;font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+
+/* yuk */
+.vlist{display:flex;flex-direction:column;gap:8px}
+.veh{display:grid;grid-template-columns:40px minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px 12px;border:1.5px solid var(--line);border-radius:14px;background:var(--surface);text-align:left;width:100%}
+.veh.on{border-color:var(--accent);background:var(--accent-soft)}
+.vic{width:40px;height:40px;border-radius:10px;background:color-mix(in srgb,var(--cargo) 18%,var(--surface));color:var(--cargo);display:grid;place-items:center}
+.vic svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.veh b{display:block;font-weight:600}
+.veh span{display:block;font-size:12px;color:var(--muted)}
+.veh .vp{text-align:right}
+.veh .vp b{font-family:var(--font-display);font-size:13.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.helpers{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 12px;border-radius:14px;background:var(--surface-2)}
+.helpers small{display:block;font-size:12px;color:var(--muted)}
+
+/* marshrut */
+.rchips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.rchip{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:9px 10px;border-radius:14px;border:1.5px solid var(--line);background:var(--surface);text-align:left;min-width:0}
+.rchip.on{border-color:var(--rc)}
+.rchip span:last-child{font-size:11.5px;color:var(--muted);line-height:1.25}
+.rno{display:inline-grid;place-items:center;min-width:34px;height:22px;padding:0 6px;border-radius:6px;background:var(--rc);color:var(--on-route);font-weight:700;font-size:12.5px}
+.next{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px;border-radius:16px;background:var(--surface-2);border-left:4px solid var(--rc)}
+.next small{display:block;font-size:12px;color:var(--muted)}
+.next b{display:block;font-weight:600}
+.next .nx2{font-size:12.5px;color:var(--muted)}
+.next .when{text-align:right;font-family:var(--font-display);font-weight:700;font-size:28px;line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap}
+.next .when small{font-family:var(--font-body);font-weight:500;font-size:12px;margin-top:4px}
+.stops{list-style:none;margin:0;padding:0;position:relative}
+.stops::before{content:"";position:absolute;left:11px;top:18px;bottom:18px;width:3px;border-radius:2px;background:var(--rc)}
+.stop{width:100%;display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:center;gap:10px;padding:9px 2px 9px 0;border:0;border-bottom:1px solid var(--line);background:none;text-align:left}
+.stops li:last-child .stop{border-bottom:0}
+.stop .node{justify-self:center;width:13px;height:13px;border-radius:50%;border:3px solid var(--rc);background:var(--surface);position:relative;z-index:1}
+.stop.on .node{width:17px;height:17px;background:var(--rc)}
+.stop .sn{font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stop.on .sn{font-weight:700}
+.stop em{font-style:normal;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--rc);margin-left:6px}
+.stop .m{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap}
+
+/* ishchi ilovalari */
+.drv-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.switch{display:flex;align-items:center;gap:9px;padding:6px 6px 6px 12px;border:0;border-radius:999px;background:var(--surface-2);font-size:13px;font-weight:600}
+.switch:disabled{opacity:.6;cursor:not-allowed}
+.knob{width:44px;height:26px;border-radius:13px;background:var(--line);position:relative;transition:background .2s}
+.knob::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--surface);box-shadow:0 1px 3px var(--shadow);transition:transform .2s}
+.switch[aria-checked="true"] .knob{background:var(--go)}
+.switch[aria-checked="true"] .knob::after{transform:translateX(18px)}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.stat{padding:10px 12px;border-radius:14px;background:var(--surface-2);min-width:0}
+.stat small{display:block;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.stat b{display:block;font-family:var(--font-display);font-weight:600;font-size:14.5px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.idle{display:flex;align-items:center;gap:12px;padding:14px;border-radius:16px;border:1px dashed var(--line);color:var(--muted);font-size:14px}
+.offer{display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:18px;border:2px solid var(--accent);background:var(--surface)}
+.ohead{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.ohead b{font-weight:700}
+.oprice{font-family:var(--font-display);font-weight:700;font-size:20px;font-variant-numeric:tabular-nums}
+.ometa{font-size:13px;color:var(--muted)}
+#obar,#cbar{transition:none}
+
+/* narxlar */
+.modal{position:absolute;inset:0;z-index:10;background:var(--surface);overflow-y:auto;padding-block:0 24px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.mhead{position:sticky;top:0;background:var(--surface);display:flex;justify-content:space-between;align-items:center;gap:12px;padding-block:14px 10px;border-bottom:1px solid var(--line);z-index:1}
+.x{width:36px;height:36px;border:0;border-radius:50%;background:var(--surface-2);font-size:20px;line-height:1}
+.psec{margin-top:18px;display:flex;flex-direction:column;gap:8px}
+.psec h3{font-family:var(--font-display);font-weight:600;font-size:15px}
+.psec p{margin:0;font-size:13px;color:var(--muted)}
+.twrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:right;padding:9px 10px;background:var(--surface-2);white-space:nowrap}
+td{padding:9px 10px;border-top:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+td:first-child b{display:block;font-weight:600}
+td:first-child span{font-size:11.5px;color:var(--muted)}
+
+@media (prefers-reduced-motion: reduce){
+  .live-dot,.radar i{animation:none}
+  .radar i{opacity:.5;transform:scale(.8)}
+  .toast,.prog i,.knob,.knob::after{transition:none}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="top">
+    <div class="logo">
+      <span class="logo-mark" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.4"/></svg></span>
+      <div>Yo‘ldosh<small>Tuman markazi</small></div>
+    </div>
+    <div class="top-r">
+      <button class="hbtn" id="pricesBtn"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Narxlar</button>
+      <a class="demo" href="xarita.html" title="Haqiqiy xaritada sinash" style="text-decoration:none;color:inherit">Haqiqiy xarita</a>
+    </div>
+  </header>
+
+  <div class="map-wrap" id="mapWrap">
+    <canvas id="map" aria-label="Tuman xaritasi: jonli harakatlanayotgan transport"></canvas>
+    <div class="badge"><span class="live-dot"></span><span id="badgeTxt">…</span></div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </div>
+
+  <section class="sheet" id="sheet" aria-live="polite"></section>
+
+  <nav class="tabs" role="tablist" aria-label="Xizmatlar">
+    <button class="tab" role="tab" data-tab="taxi" aria-selected="true"><svg viewBox="0 0 24 24"><path d="M4.5 16.5V12l2.2-5.2A1.5 1.5 0 0 1 8.1 6h7.8a1.5 1.5 0 0 1 1.4.8L19.5 12v4.5Z"/><path d="M4.5 12h15"/><circle cx="8" cy="16.6" r="1.5"/><circle cx="16" cy="16.6" r="1.5"/><path d="M10 3.5h4"/></svg>Taksi</button>
+    <button class="tab" role="tab" data-tab="del" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M5 9h14l-1.2 10.2a1 1 0 0 1-1 .8H7.2a1 1 0 0 1-1-.8Z"/><path d="M9 9V7a3 3 0 0 1 6 0v2"/></svg>Yetkazish</button>
+    <button class="tab" role="tab" data-tab="yuk" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M3 6.5h10.5v9.5H3z"/><path d="M13.5 10h4l3 3.2V16h-7"/><circle cx="7" cy="17" r="1.7"/><circle cx="17" cy="17" r="1.7"/></svg>Yuk</button>
+    <button class="tab" role="tab" data-tab="bus" aria-selected="false"><svg viewBox="0 0 24 24"><rect x="5" y="3.5" width="14" height="14" rx="2.5"/><path d="M5 10.5h14"/><path d="M8 17.5v2.5M16 17.5v2.5"/><circle cx="8.5" cy="14" r=".6"/><circle cx="15.5" cy="14" r=".6"/></svg>Marshrut</button>
+    <button class="tab" role="tab" data-tab="drv" aria-selected="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.2"/><circle cx="12" cy="12" r="2.2"/><path d="M4 10.8h6M14 10.8h6M12 14.2v6"/></svg>Haydovchi</button>
+  </nav>
+
+  <div class="modal" id="prices" hidden role="dialog" aria-modal="true" aria-labelledby="pricesTitle"></div>
+</div>
+
+<script>
+(() => {
+"use strict";
+/* ================= Shahar (namuna tuman) ================= */
+const VX = 30, VY = 30, VW = 640, VH = 580;
+const XS = [70, 210, 350, 490, 630], YS = [70, 190, 310, 450, 570];
+const NODES = [];
+for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) NODES.push({ x: XS[c], y: YS[r] });
+const NAMES = ["Bog‘ishamol","Navbahor","Chorraha","Yangiobod","Avtovokzal","Gulzor","Do‘stlik","Markaziy bozor","Mustaqillik","Sharq","Shifoxona","Navoiy","Hokimiyat","Universam","Ko‘priksoy","Tegirmon","5-maktab","Bobur","Istirohat bog‘i","Olmazor","Paxtazor","Mehnatobod","Guliston","Ipakchi","Kollej"];
+const LANDMARKS = [
+  { n: 4, dx: -12, dy: 20, al: "right" }, { n: 7, dx: -12, dy: -10, al: "right" },
+  { n: 10, dx: 12, dy: 22, al: "left" }, { n: 12, dx: -12, dy: -10, al: "right" },
+  { n: 13, dx: 12, dy: 22, al: "left" }, { n: 16, dx: 12, dy: 22, al: "left" },
+  { n: 18, dx: 12, dy: 24, al: "left" }, { n: 24, dx: -12, dy: -10, al: "right" }
+];
+const QUICK = [7, 4, 10, 24, 18, 12, 16];
+const USER = 13;
+const adj = NODES.map(() => []);
+const EDGES = [];
+const link = (a, b, main) => { adj[a].push(b); adj[b].push(a); EDGES.push({ a, b, main }); };
+for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) {
+  const i = r * 5 + c;
+  if (c < 4) link(i, i + 1, r === 2);
+  if (r < 4) link(i, i + 5, c === 2);
+}
+[[20,16],[16,12],[12,8],[8,4]].forEach(([a, b]) => link(a, b, true));
+
+const d = (a, b) => Math.hypot(NODES[a].x - NODES[b].x, NODES[a].y - NODES[b].y);
+const pathCache = new Map();
+function path(a, b) {
+  if (a === b) return [a];
+  const key = a * 25 + b;
+  if (pathCache.has(key)) return pathCache.get(key);
+  const dist = Array(25).fill(Infinity), prev = Array(25).fill(-1), done = Array(25).fill(false);
+  dist[a] = 0;
+  for (;;) {
+    let u = -1;
+    for (let i = 0; i < 25; i++) if (!done[i] && (u < 0 || dist[i] < dist[u])) u = i;
+    if (u < 0 || dist[u] === Infinity || u === b) break;
+    done[u] = true;
+    for (const v of adj[u]) { const nd = dist[u] + d(u, v); if (nd < dist[v]) { dist[v] = nd; prev[v] = u; } }
+  }
+  const p = [];
+  for (let v = b; v !== -1; v = prev[v]) p.unshift(v);
+  pathCache.set(key, p);
+  return p;
+}
+const plen = p => { let s = 0; for (let i = 1; i < p.length; i++) s += d(p[i - 1], p[i]); return s; };
+const pdist = (a, b) => plen(path(a, b));
+const KM = 0.0043;
+const km = u => u * KM;
+const mins = (u, kmh) => Math.max(1, Math.round(km(u) / kmh * 60));
+const round500 = n => Math.round(n / 500) * 500;
+const fmt = n => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " so‘m";
+const fmtK = n => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+const simSp = kmh => 12 + kmh * 0.9;
+const rnd = n => (Math.random() * n) | 0;
+
+/* ================= Narxlar (hammasi mijozga ochiq) ================= */
+const TAXI_T = [
+  { id: "eko", name: "Ekonom", cars: "Cobalt, Nexia", base: 7000, perKm: 1500, min: 8000 },
+  { id: "kom", name: "Komfort", cars: "Gentra, Malibu", base: 9000, perKm: 2000, min: 11000 },
+  { id: "min", name: "Miniven", cars: "6 o‘rindiqli", base: 12000, perKm: 2500, min: 15000 }
+];
+const taxiPrice = (t, u) => Math.max(t.min, round500(t.base + t.perKm * km(u)));
+
+const COUR_T = [
+  { id: "piyoda", name: "Piyoda", kmh: 5, max: 1.5, capKg: 5, base: 5000, perKm: 2000 },
+  { id: "velo", name: "Velosiped", kmh: 14, max: 4, capKg: 10, base: 6000, perKm: 1500 },
+  { id: "samokat", name: "Elektr samokat", kmh: 18, max: 4, capKg: 8, base: 6000, perKm: 1500 },
+  { id: "skuter", name: "Skuter", kmh: 25, max: 10, capKg: 15, base: 7000, perKm: 1500 },
+  { id: "avto", name: "Avtomobil", kmh: 27, max: 30, capKg: 50, base: 9000, perKm: 1800 }
+];
+const CT = Object.fromEntries(COUR_T.map(t => [t.id, t]));
+const courFee = (t, u) => Math.max(t.base, round500(t.base + t.perKm * km(u)));
+
+const CARGO_T = [
+  { id: "moto", name: "Yuk mototsikli", sub: "Muravey, 3 g‘ildirakli", cap: "300 kg gacha", kmh: 22, base: 15000, perKm: 2500, min: 20000 },
+  { id: "damas", name: "Damas", sub: "Kichik yuk, mebel", cap: "600 kg gacha", kmh: 25, base: 20000, perKm: 3000, min: 30000 },
+  { id: "labo", name: "Labo", sub: "Ochiq kuzov", cap: "1 tonnagacha", kmh: 25, base: 25000, perKm: 3500, min: 35000 },
+  { id: "isuzu", name: "Isuzu", sub: "Tentli yuk mashinasi", cap: "5 tonnagacha", kmh: 22, base: 60000, perKm: 6000, min: 80000 },
+  { id: "kamaz", name: "KamAZ", sub: "Samosval: qum, shag‘al, g‘isht", cap: "15 tonnagacha", kmh: 20, base: 150000, perKm: 12000, min: 200000 },
+  { id: "traktor", name: "Traktor", sub: "Tirkamali, dala va bog‘ ishlari", cap: "6 tonnagacha", kmh: 12, base: 80000, perKm: 8000, min: 100000 }
+];
+const GT = Object.fromEntries(CARGO_T.map(t => [t.id, t]));
+const HELPER = 30000;
+const cargoPrice = (t, u, h) => Math.max(t.min, round500(t.base + t.perKm * km(u))) + h * HELPER;
+const ITEMS = [{ n: "Hujjat", kg: 0.5 }, { n: "Kichik quti", kg: 3 }, { n: "O‘rta quti", kg: 8 }, { n: "Katta yuk", kg: 20 }];
+
+/* ================= Do'konlar va restoranlar ================= */
+const STORES = [
+  { id: 0, kind: "food", name: "Choyxona «Bahor»", tag: "Osh, shashlik, salatlar", node: 7, prep: 15, rating: 4.8, menu: [
+    ["Osh, 1 porsiya", "Qazi bilan", 30000, 0.5], ["Shashlik, mol go‘shti", "1 six", 15000, 0.15], ["Achchiq-chuchuk", "Salat", 10000, 0.3], ["Tandir non", "1 dona", 5000, 0.3], ["Ko‘k choy", "Choynak", 6000, 1]] },
+  { id: 1, kind: "food", name: "Somsaxona «Navbahor»", tag: "Tandir somsa, patir", node: 1, prep: 10, rating: 4.9, menu: [
+    ["Tandir somsa", "Go‘shtli", 7000, 0.15], ["Go‘shtli non", "1 dona", 15000, 0.4], ["Patir non", "1 dona", 8000, 0.4], ["Ayron", "0,5 l", 6000, 0.5]] },
+  { id: 2, kind: "food", name: "«Dasturxon» kafesi", tag: "Lag‘mon, manti, sho‘rva", node: 18, prep: 20, rating: 4.7, menu: [
+    ["Lag‘mon", "Qo‘lda cho‘zilgan", 28000, 0.6], ["Manti", "5 dona", 30000, 0.5], ["Mastava", "1 kosa", 22000, 0.6], ["Chuchvara", "1 porsiya", 25000, 0.5]] },
+  { id: 3, kind: "food", name: "Shahar fast-fudi", tag: "Lavash, burger, pitsa", node: 12, prep: 12, rating: 4.6, menu: [
+    ["Lavash", "Tovuqli", 26000, 0.4], ["Gamburger", "Mol go‘shti", 24000, 0.3], ["Pitsa", "30 sm", 65000, 0.9], ["Kartoshka fri", "Katta", 15000, 0.2], ["Gazli ichimlik", "1 l", 12000, 1]] },
+  { id: 4, kind: "shop", name: "«Oila» universami", tag: "Oziq-ovqat, ro‘zg‘or", node: 8, prep: 8, rating: 4.8, menu: [
+    ["Non", "1 dona", 4000, 0.3], ["Sut", "1 l", 12000, 1], ["Tuxum", "10 dona", 17000, 0.6], ["Guruch, devzira", "1 kg", 18000, 1], ["Kungaboqar yog‘i", "1 l", 22000, 0.9], ["Shakar", "1 kg", 13000, 1], ["Ko‘k choy", "100 g", 15000, 0.1]] },
+  { id: 5, kind: "shop", name: "Dehqon bozori rastasi", tag: "Go‘sht, meva-sabzavot", node: 7, prep: 10, rating: 4.7, menu: [
+    ["Mol go‘shti", "1 kg", 115000, 1], ["Kartoshka", "1 kg", 6000, 1], ["Piyoz", "1 kg", 5000, 1], ["Sabzi", "1 kg", 6000, 1], ["Pomidor", "1 kg", 14000, 1], ["Olma", "1 kg", 16000, 1]] },
+  { id: 6, kind: "shop", name: "Mahalla do‘koni", tag: "Non, sut, ichimliklar", node: 14, prep: 5, rating: 4.9, menu: [
+    ["Non", "1 dona", 4000, 0.3], ["Qatiq", "0,5 l", 9000, 0.5], ["Ichimlik suvi", "1,5 l", 5000, 1.5], ["Pechenye", "300 g", 12000, 0.3], ["Muzqaymoq", "1 dona", 7000, 0.2]] }
+];
+
+/* ================= Transport ================= */
+function mkCar(n, extra) {
+  const c = Object.assign({ from: n, to: adj[n][0], prev: n, t: 0, route: [], stopped: false, onArrive: null,
+    x: NODES[n].x, y: NODES[n].y, ang: 0, free: true, kmh: 27 }, extra);
+  c.cruise = simSp(c.kmh); c.speed = c.cruise;
+  return c;
+}
+const taxis = [
+  ["Aziz Rahimov","Cobalt","oq","40 A 125 KA",4.9,"+998 90 512 34 18",0],
+  ["Dilshod Tursunov","Nexia 3","kumush","40 B 318 MA",4.8,"+998 91 207 66 41",3],
+  ["Sherzod Aliyev","Gentra","qora","40 A 742 BC",4.95,"+998 93 470 12 05",6],
+  ["Bekzod Qodirov","Cobalt","oq","40 C 509 DA",4.7,"+998 94 318 90 22",9],
+  ["Ulug‘bek Sobirov","Lacetti","kulrang","40 A 066 RA",4.85,"+998 99 641 25 37",11],
+  ["Farrux Nazarov","Malibu","qora","40 D 231 TA",4.9,"+998 90 733 48 16",15],
+  ["Otabek Yo‘ldoshev","Cobalt","ko‘k","40 B 884 KA",4.75,"+998 97 185 03 64",18],
+  ["Jamshid Ergashev","Spark","qizil","40 A 457 SA",4.8,"+998 95 920 71 88",21],
+  ["Sanjar Hamidov","Nexia 3","oq","40 C 190 NA",4.9,"+998 88 406 57 29",23]
+].map(r => mkCar(r[6], { kind: "taxi", name: r[0], model: r[1], color: r[2], plate: r[3], rating: r[4], phone: r[5], kmh: 27 }));
+const cargos = [
+  ["moto","Ravshan Ismoilov","Muravey","40 M 2214 A",4.8,"+998 90 441 72 03",2],
+  ["moto","Ilhom To‘rayev","Muravey","40 M 0937 B",4.7,"+998 93 118 25 60",20],
+  ["damas","Akmal Saidov","Damas","40 D 418 KA",4.9,"+998 91 562 07 34",5],
+  ["damas","Botir Xoliqov","Damas","40 D 772 MA",4.8,"+998 94 805 61 19",17],
+  ["labo","Nodir Jo‘rayev","Labo","40 D 105 BA",4.85,"+998 97 330 48 52",10],
+  ["isuzu","Komil Rasulov","Isuzu NQR","40 E 640 AA",4.9,"+998 99 274 19 86",24],
+  ["kamaz","Shuhrat Mirzayev","KamAZ 65115","40 H 300 TA",4.75,"+998 90 913 52 47",4],
+  ["traktor","Abdulla Qosimov","MTZ-82","40 T 571 AT",4.8,"+998 95 640 33 71",19]
+].map(r => mkCar(r[6], { kind: "cargo", type: r[0], name: r[1], model: r[2], color: "", plate: r[3], rating: r[4], phone: r[5], kmh: GT[r[0]].kmh }));
+const couriers = [
+  ["piyoda","Sardor Aminov",4.9,7],["piyoda","Muhlisa Karimova",4.95,12],
+  ["velo","Javohir Rahmonov",4.8,2],["velo","Ozoda Nurmatova",4.9,18],
+  ["samokat","Doniyor Ahmedov",4.85,13],["samokat","Lola Sharipova",4.9,9],
+  ["skuter","Eldor Umarov",4.8,16],["skuter","Rustam Valiyev",4.7,4],
+  ["avto","Alisher Mamatov",4.9,21]
+].map((r, i) => mkCar(r[3], { kind: "courier", type: r[0], name: r[1], rating: r[2], phone: `+998 9${i % 9} ${300 + i * 47} ${10 + i * 7} ${20 + i * 3}`, kmh: CT[r[0]].kmh }));
+const ME = mkCar(17, { name: "Jasur Karimov", model: "Cobalt", color: "oq", plate: "40 A 777 XA", rating: 4.92, kmh: 27 });
+ME.stopped = true; ME.to = ME.from;
+const MC = mkCar(22, { name: "Madina Yusupova", type: "velo", rating: 4.95, kmh: CT.velo.kmh });
+MC.stopped = true; MC.to = MC.from;
+
+function wander(c) {
+  const ch = adj[c.from].filter(n => n !== c.prev);
+  const l = ch.length ? ch : adj[c.from];
+  return l[rnd(l.length)];
+}
+function place(c) {
+  const A = NODES[c.from], B = NODES[c.to], L = d(c.from, c.to) || 1, k = Math.min(1, c.t / L);
+  c.x = A.x + (B.x - A.x) * k; c.y = A.y + (B.y - A.y) * k;
+  if (c.from !== c.to) c.ang = Math.atan2(B.y - A.y, B.x - A.x);
+}
+function stepCar(c, dt) {
+  if (c.stopped) return;
+  if (c.from === c.to) { c.to = c.route.length ? c.route.shift() : wander(c); c.t = 0; }
+  c.t += c.speed * dt;
+  let guard = 0;
+  while (c.t >= d(c.from, c.to) && guard++ < 12) {
+    c.t -= d(c.from, c.to); c.prev = c.from; c.from = c.to;
+    if (c.route.length) c.to = c.route.shift();
+    else if (c.onArrive) {
+      const f = c.onArrive; c.onArrive = null; c.stopped = true; c.t = 0; c.to = c.from; place(c);
+      f();
+      if (c.stopped || c.from === c.to) return;
+    } else c.to = wander(c);
+  }
+  place(c);
+}
+function driveTo(c, n, cb) {
+  c.speed = c.cruise * 1.45;
+  c.onArrive = cb;
+  if (c.stopped || c.from === c.to) {
+    c.stopped = false;
+    const p = path(c.from, n);
+    if (p.length < 2) { c.stopped = true; c.onArrive = null; c.to = c.from; setTimeout(cb, 300); return; }
+    c.to = p[1]; c.route = p.slice(2); c.t = 0;
+  } else c.route = path(c.to, n).slice(1);
+}
+function release(c) {
+  c.free = true; c.speed = c.cruise; c.onArrive = null; c.route = [];
+  if (c.stopped) { c.stopped = false; c.to = wander(c); c.t = 0; }
+}
+const rem = c => (c.stopped || c.from === c.to) ? 0 : Math.max(0, d(c.from, c.to) - c.t) + plen([c.to, ...c.route]);
+const distTo = (c, n) => (c.stopped || c.from === c.to) ? pdist(c.from, n) : Math.max(0, d(c.from, c.to) - c.t) + pdist(c.to, n);
+function nearestFree(list, n, ok) {
+  let best = null, bd = Infinity;
+  for (const c of list) if (c.free && (!ok || ok(c))) { const x = distTo(c, n); if (x < bd) { bd = x; best = c; } }
+  return best;
+}
+
+/* ================= Marshrutlar ================= */
+const ROUTES = [
+  { no: "1", kind: "Avtobus", desc: "Avtovokzal · Bozor · Hokimiyat", loop: [4,3,2,7,12,8], stops: [4,2,7,12,8], fare: 1700, cv: "r1", speed: 24, n: 2 },
+  { no: "3", kind: "Marshrutka", desc: "Shifoxona · Universam · Kollej", loop: [10,11,12,13,14,19,24,23,22,21,20,15], stops: [10,12,13,14,24,22,20], fare: 2000, cv: "r3", speed: 30, n: 3 },
+  { no: "7", kind: "Marshrutka", desc: "Gulzor · Bozor · Universam", loop: [5,6,7,8,9,14,13,12,11,10], stops: [5,7,8,9,14,13,11], fare: 2000, cv: "r7", speed: 30, n: 2 }
+];
+ROUTES.forEach(R => {
+  R.cum = [0];
+  for (let i = 0; i < R.loop.length; i++) R.cum.push(R.cum[i] + d(R.loop[i], R.loop[(i + 1) % R.loop.length]));
+  R.L = R.cum[R.loop.length];
+  R.veh = Array.from({ length: R.n }, (_, k) => ({ s: (R.L * k) / R.n + 40 }));
+});
+function busPos(R, s) {
+  let i = 0;
+  while (i < R.loop.length - 1 && R.cum[i + 1] <= s) i++;
+  const a = R.loop[i], b = R.loop[(i + 1) % R.loop.length];
+  const k = (s - R.cum[i]) / (R.cum[i + 1] - R.cum[i]);
+  return { x: NODES[a].x + (NODES[b].x - NODES[a].x) * k, y: NODES[a].y + (NODES[b].y - NODES[a].y) * k };
+}
+const busD = (R, node) => { const sk = R.cum[R.loop.indexOf(node)]; return R.veh.map(v => (sk - v.s + R.L) % R.L).sort((a, b) => a - b); };
+const busMin = u => Math.max(1, Math.round(km(u) / 0.3));
+
+/* ================= Holat ================= */
+const S = {
+  tab: "taxi",
+  taxi: { stage: "select", to: null, tariff: "eko", car: null, tok: 0, total: 1, price: 0, rating: 0, pay: "naqd", showPhone: false },
+  del: { mode: "client", kind: "food", stage: "browse", store: null, cart: {}, transport: "velo", pay: "naqd",
+         from: USER, to: null, item: 0, phone: "", ord: null, car: null, tok: 0, total: 1, code: "", showPhone: false, rating: 0 },
+  cour: { online: false, earn: 0, trips: 0, offer: null, trip: null, last: null, timer: null, err: "" },
+  yuk: { stage: "form", from: USER, to: null, veh: "damas", helpers: 0, car: null, tok: 0, total: 1, price: 0, rating: 0, showPhone: false },
+  bus: { r: 1, stop: { 0: 12, 1: 13, 2: 13 } },
+  drv: { online: false, earn: 0, trips: 0, offer: null, trip: null, last: null, timer: null }
+};
+try { const t = localStorage.getItem("yoldosh-tab"); if (["taxi","del","yuk","bus","drv"].includes(t)) S.tab = t; } catch (e) {}
+
+/* ================= Kanvas ================= */
+const wrap = document.getElementById("mapWrap"), cv = document.getElementById("map"), ctx = cv.getContext("2d");
+const stat = document.createElement("canvas"), sctx = stat.getContext("2d");
+let CW = 0, CH = 0, DPR = 1, SC = 1, OX = 0, OY = 0;
+const C = {};
+const TOK = ["map-ground","map-block","map-bldg","map-road","map-edge","map-main","map-water","map-park","map-tree","map-label","map-halo","accent","accent-ink","accent-deep","ink","surface","muted","r1","r3","r7","go","cargo","courier"];
+function readTok() { const cs = getComputedStyle(document.documentElement); TOK.forEach(t => C[t] = cs.getPropertyValue("--" + t).trim()); }
+const X = x => OX + (x - VX) * SC, Y = y => OY + (y - VY) * SC;
+function rr(c, x, y, w, h, r) {
+  c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r);
+  c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath();
+}
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+function resize() {
+  const r = wrap.getBoundingClientRect();
+  DPR = Math.min(window.devicePixelRatio || 1, 2.5);
+  CW = Math.max(1, r.width); CH = Math.max(1, r.height);
+  cv.width = Math.round(CW * DPR); cv.height = Math.round(CH * DPR);
+  stat.width = cv.width; stat.height = cv.height;
+  const usableH = CH - 20;
+  SC = Math.min(CW / VW, usableH / VH);
+  OX = (CW - VW * SC) / 2; OY = (usableH - VH * SC) / 2;
+  buildStatic();
+}
+function label(c, text, x, y, align) {
+  c.font = "600 10.5px Onest, system-ui, sans-serif";
+  c.textAlign = align || "left"; c.textBaseline = "middle";
+  c.lineJoin = "round"; c.lineWidth = 3.2; c.strokeStyle = C["map-halo"]; c.strokeText(text, x, y);
+  c.fillStyle = C["map-label"]; c.fillText(text, x, y);
+}
+function buildStatic() {
+  const c = sctx;
+  c.setTransform(DPR, 0, 0, DPR, 0, 0);
+  c.fillStyle = C["map-ground"]; c.fillRect(0, 0, CW, CH);
+  const rand = rng(7);
+  const bx = [0, 70, 210, 350, 490, 630, 700], by = [0, 70, 190, 310, 450, 570, 640], IN = 13;
+  const canalY = x => 380 + 7 * Math.sin(x / 95);
+  for (let i = 0; i < 6; i++) for (let j = 0; j < 6; j++) {
+    const x0 = bx[i] + IN, x1 = bx[i + 1] - IN;
+    const parts = j === 3 ? [[by[j] + IN, 360], [400, by[j + 1] - IN]] : [[by[j] + IN, by[j + 1] - IN]];
+    for (const [y0, y1] of parts) {
+      if (x1 - x0 < 8 || y1 - y0 < 8) continue;
+      const park = i === 4 && j === 4, bazar = i === 2 && j === 1;
+      c.fillStyle = park ? C["map-park"] : C["map-block"];
+      rr(c, X(x0), Y(y0), (x1 - x0) * SC, (y1 - y0) * SC, 6 * SC); c.fill();
+      if (park) {
+        c.fillStyle = C["map-tree"];
+        for (let k = 0; k < 26; k++) { c.beginPath(); c.arc(X(x0 + 8 + rand() * (x1 - x0 - 16)), Y(y0 + 8 + rand() * (y1 - y0 - 16)), (4 + rand() * 4) * SC, 0, 7); c.fill(); }
+        continue;
+      }
+      if (bazar) {
+        c.fillStyle = C["map-main"]; c.strokeStyle = C["map-edge"]; c.lineWidth = 1;
+        for (let a = 0; a < 4; a++) for (let b = 0; b < 3; b++) {
+          rr(c, X(x0 + 10 + a * ((x1 - x0 - 14) / 4)), Y(y0 + 10 + b * ((y1 - y0 - 14) / 3)), ((x1 - x0 - 14) / 4 - 6) * SC, ((y1 - y0 - 14) / 3 - 8) * SC, 2 * SC);
+          c.fill(); c.stroke();
+        }
+        continue;
+      }
+      const cols = Math.max(1, Math.floor((x1 - x0) / 30)), rows = Math.max(1, Math.floor((y1 - y0) / 28));
+      const cw = (x1 - x0) / cols, ch = (y1 - y0) / rows;
+      c.fillStyle = C["map-bldg"];
+      for (let a = 0; a < cols; a++) for (let b = 0; b < rows; b++) {
+        if (rand() < .18) continue;
+        const w = cw * (0.55 + rand() * 0.3), h = ch * (0.55 + rand() * 0.3);
+        rr(c, X(x0 + a * cw + (cw - w) / 2), Y(y0 + b * ch + (ch - h) / 2), w * SC, h * SC, 1.5 * SC); c.fill();
+      }
+    }
+  }
+  c.beginPath();
+  for (let x = -20; x <= 720; x += 10) { const px = X(x), py = Y(canalY(x)); x === -20 ? c.moveTo(px, py) : c.lineTo(px, py); }
+  c.strokeStyle = C["map-water"]; c.lineWidth = Math.max(6, 18 * SC); c.lineCap = "round"; c.stroke();
+  const wMain = Math.max(6, 14 * SC), wN = Math.max(4, 9 * SC);
+  for (const pass of [0, 1]) for (const e of EDGES) {
+    const A = NODES[e.a], B = NODES[e.b];
+    c.beginPath(); c.moveTo(X(A.x), Y(A.y)); c.lineTo(X(B.x), Y(B.y));
+    const w = e.main ? wMain : wN;
+    c.lineWidth = pass ? w : w + 2.5;
+    c.strokeStyle = pass ? (e.main ? C["map-main"] : C["map-road"]) : C["map-edge"];
+    c.stroke();
+  }
+  const streets = [
+    { t: "Mustaqillik shoh ko‘chasi", x: 420, y: 250, a: Math.atan2(-120, 140) },
+    { t: "Navoiy ko‘chasi", x: 280, y: 310, a: 0 },
+    { t: "Bobur ko‘chasi", x: 350, y: 510, a: -Math.PI / 2 }
+  ];
+  for (const s of streets) {
+    c.save(); c.translate(X(s.x), Y(s.y)); c.rotate(s.a);
+    c.font = "500 9px Onest, system-ui, sans-serif"; c.textAlign = "center"; c.textBaseline = "middle";
+    c.fillStyle = C["map-label"]; c.globalAlpha = .8; c.fillText(s.t, 0, 0.5); c.restore();
+  }
+  c.save(); c.font = "italic 500 9.5px Onest, system-ui, sans-serif"; c.fillStyle = C["map-label"]; c.globalAlpha = .65;
+  c.textAlign = "center"; c.fillText("Kanal", X(600), Y(canalY(600)) + 3.5); c.restore();
+  for (const L of LANDMARKS) {
+    const p = NODES[L.n];
+    c.beginPath(); c.arc(X(p.x) + L.dx * 0.45, Y(p.y) + L.dy * 0.45, 3.4, 0, 7);
+    c.fillStyle = C["map-label"]; c.fill();
+    label(c, NAMES[L.n], X(p.x) + L.dx, Y(p.y) + L.dy, L.al);
+  }
+}
+
+function drawCar(x, y, a, fill, opt) {
+  const o = opt || {}, L = o.L || (o.big ? 11 : 8), Wd = o.W || (o.big ? 6.2 : 4.8);
+  ctx.save(); ctx.translate(X(x), Y(y)); ctx.rotate(a);
+  if (o.ring) { ctx.fillStyle = o.ring; rr(ctx, -L - 3, -Wd - 3, 2 * L + 6, 2 * Wd + 6, 6); ctx.fill(); }
+  ctx.fillStyle = fill; rr(ctx, -L, -Wd, 2 * L, 2 * Wd, 3); ctx.fill();
+  ctx.lineWidth = 1; ctx.strokeStyle = "rgba(0,0,0,.28)"; ctx.stroke();
+  ctx.fillStyle = "rgba(0,0,0,.35)";
+  if (o.truck) { rr(ctx, L * 0.35, -Wd + 1.2, L * 0.5, 2 * Wd - 2.4, 1.5); ctx.fill(); ctx.fillStyle = "rgba(255,255,255,.25)"; rr(ctx, -L + 1.5, -Wd + 1.5, L * 1.2, 2 * Wd - 3, 1); ctx.fill(); }
+  else { rr(ctx, L * 0.12, -Wd + 1.4, L * 0.45, 2 * Wd - 2.8, 1.5); ctx.fill(); }
+  ctx.restore();
+}
+const TRUCK_SIZE = { moto: [6, 3.6], damas: [7.5, 4.6], labo: [8.5, 4.6], isuzu: [10.5, 5.6], kamaz: [12.5, 6.2], traktor: [8, 6] };
+function drawCargo(c, big, alpha) {
+  const [L, W] = TRUCK_SIZE[c.type];
+  ctx.globalAlpha = alpha;
+  drawCar(c.x, c.y, c.ang, C["cargo"], { L: big ? L * 1.25 : L, W: big ? W * 1.25 : W, truck: true, ring: big ? C["ink"] : null });
+  ctx.globalAlpha = 1;
+}
+function drawCourier(c, big, alpha, color) {
+  const r = (c.type === "piyoda" ? 4 : 5) * (big ? 1.5 : 1);
+  ctx.globalAlpha = alpha;
+  ctx.beginPath(); ctx.arc(X(c.x), Y(c.y), r + 2, 0, 7); ctx.fillStyle = big ? C["ink"] : C["surface"]; ctx.fill();
+  ctx.beginPath(); ctx.arc(X(c.x), Y(c.y), r, 0, 7); ctx.fillStyle = color || C["courier"]; ctx.fill();
+  ctx.globalAlpha = 1;
+}
+function drawPin(n, txt, fill, fg) {
+  const x = X(NODES[n].x), y = Y(NODES[n].y);
+  ctx.beginPath(); ctx.arc(x, y, 3, 0, 7); ctx.fillStyle = fill; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(x - 6, y - 15); ctx.lineTo(x, y - 4); ctx.lineTo(x + 6, y - 15); ctx.fill();
+  ctx.beginPath(); ctx.arc(x, y - 19, 10.5, 0, 7); ctx.fillStyle = fill; ctx.fill();
+  ctx.lineWidth = 2; ctx.strokeStyle = C["surface"]; ctx.stroke();
+  ctx.fillStyle = fg; ctx.font = "700 10.5px Onest, system-ui, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText(txt, x, y - 18.5);
+}
+function drawShop(n, on) {
+  const x = X(NODES[n].x), y = Y(NODES[n].y) - 12, s = on ? 9 : 7;
+  ctx.fillStyle = on ? C["accent"] : C["surface"]; rr(ctx, x - s, y - s, 2 * s, 2 * s, 4); ctx.fill();
+  ctx.lineWidth = 2; ctx.strokeStyle = C["accent"]; ctx.stroke();
+  ctx.beginPath(); ctx.arc(x, y, on ? 3 : 2.4, 0, 7); ctx.fillStyle = on ? C["accent-ink"] : C["accent"]; ctx.fill();
+}
+function polyline(pts, color, w, dash, alpha) {
+  if (pts.length < 2) return;
+  ctx.save(); ctx.globalAlpha = alpha == null ? 1 : alpha;
+  ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(X(p.x), Y(p.y)) : ctx.moveTo(X(p.x), Y(p.y)));
+  ctx.strokeStyle = color; ctx.lineWidth = w; ctx.lineCap = "round"; ctx.lineJoin = "round";
+  if (dash) ctx.setLineDash(dash);
+  ctx.stroke(); ctx.restore();
+}
+const plan = (a, b) => path(a, b).map(n => NODES[n]);
+const carRoute = c => [{ x: c.x, y: c.y }, ...((c.stopped || c.from === c.to) ? [] : [c.to, ...c.route].map(n => NODES[n]))];
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+function drawUser(now) {
+  const x = X(NODES[USER].x), y = Y(NODES[USER].y);
+  if (!reduceMotion) {
+    const k = (now / 1600) % 1;
+    ctx.beginPath(); ctx.arc(x, y, 8 + k * 18, 0, 7); ctx.fillStyle = C["accent"]; ctx.globalAlpha = .35 * (1 - k); ctx.fill(); ctx.globalAlpha = 1;
+  }
+  ctx.beginPath(); ctx.arc(x, y, 7.5, 0, 7); ctx.fillStyle = C["surface"]; ctx.fill();
+  ctx.beginPath(); ctx.arc(x, y, 5, 0, 7); ctx.fillStyle = C["accent"]; ctx.fill();
+}
+
+function draw(now) {
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.clearRect(0, 0, CW, CH);
+  ctx.drawImage(stat, 0, 0, CW, CH);
+  const tab = S.tab, dl = S.del;
+  const courierView = tab === "del" && dl.mode === "courier";
+  const fTaxi = tab === "taxi" ? 1 : .22, fCargo = tab === "yuk" ? 1 : .22, fCour = tab === "del" ? (courierView ? .4 : 1) : .22;
+
+  if (tab === "bus") {
+    ROUTES.forEach((R, i) => { if (i !== S.bus.r) polyline([...R.loop, R.loop[0]].map(n => NODES[n]), C[R.cv], 3, null, .28); });
+    const R = ROUTES[S.bus.r];
+    polyline([...R.loop, R.loop[0]].map(n => NODES[n]), C[R.cv], 5.5);
+    for (const n of R.stops) {
+      const on = n === S.bus.stop[S.bus.r];
+      ctx.beginPath(); ctx.arc(X(NODES[n].x), Y(NODES[n].y), on ? 8 : 5.5, 0, 7);
+      ctx.fillStyle = on ? C[R.cv] : C["surface"]; ctx.fill();
+      ctx.lineWidth = 3; ctx.strokeStyle = on ? C["surface"] : C[R.cv]; ctx.stroke();
+    }
+  }
+
+  // tanlangan yo'nalishlar
+  if (tab === "taxi") {
+    const o = S.taxi;
+    if (o.stage === "select" && o.to != null) polyline(plan(USER, o.to), C["ink"], 3, [2, 7]);
+    if (o.car && (o.stage === "coming" || o.stage === "ride")) polyline(carRoute(o.car), C["accent"], 4.5);
+  } else if (tab === "del" && !courierView) {
+    if (dl.car && (dl.stage === "pickup" || dl.stage === "way")) polyline(carRoute(dl.car), C["accent"], 4.5);
+    else if (dl.stage === "checkout" && dl.store != null) polyline(plan(STORES[dl.store].node, USER), C["ink"], 3, [2, 7]);
+    else if (dl.stage === "browse" && dl.kind === "parcel" && dl.to != null && dl.to !== dl.from) polyline(plan(dl.from, dl.to), C["ink"], 3, [2, 7]);
+  } else if (courierView) {
+    const cs = S.cour;
+    if (cs.offer) polyline(plan(cs.offer.from, cs.offer.to), C["ink"], 3, [2, 7]);
+    if (cs.trip) polyline(carRoute(MC), C["accent"], 4.5);
+  } else if (tab === "yuk") {
+    const o = S.yuk;
+    if (o.stage === "form" && o.to != null && o.to !== o.from) polyline(plan(o.from, o.to), C["ink"], 3, [2, 7]);
+    if (o.car && (o.stage === "coming" || o.stage === "ride")) polyline(carRoute(o.car), C["accent"], 4.5);
+  } else if (tab === "drv") {
+    const dd = S.drv;
+    if (dd.offer) polyline(plan(dd.offer.from, dd.offer.to), C["ink"], 3, [2, 7]);
+    if (dd.trip) polyline(carRoute(ME), C["accent"], 4.5);
+  }
+
+  // do'konlar
+  if (tab === "del" && !courierView && (dl.stage === "browse" || dl.stage === "store" || dl.stage === "checkout") && dl.kind !== "parcel") {
+    STORES.filter(s => s.kind === dl.kind).forEach(s => drawShop(s.node, dl.store === s.id));
+  }
+
+  // transport
+  const mineTaxi = tab === "taxi" ? S.taxi.car : null, mineDel = tab === "del" && !courierView ? dl.car : null, mineYuk = tab === "yuk" ? S.yuk.car : null;
+  ctx.globalAlpha = fTaxi;
+  for (const c of taxis) if (c !== mineTaxi) drawCar(c.x, c.y, c.ang, C["accent"]);
+  ctx.globalAlpha = 1;
+  for (const c of cargos) if (c !== mineYuk) drawCargo(c, false, fCargo);
+  for (const c of couriers) if (c !== mineDel) drawCourier(c, false, fCour);
+  if (mineTaxi) drawCar(mineTaxi.x, mineTaxi.y, mineTaxi.ang, C["accent"], { big: true, ring: C["ink"] });
+  if (mineYuk) drawCargo(mineYuk, true, 1);
+  if (mineDel) drawCourier(mineDel, true, 1);
+
+  ROUTES.forEach((R, i) => {
+    const sel = tab === "bus" && i === S.bus.r;
+    ctx.globalAlpha = tab === "bus" ? (sel ? 1 : .5) : .35;
+    for (const v of R.veh) {
+      const p = busPos(R, v.s), x = X(p.x), y = Y(p.y), r = sel ? 10.5 : 8;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fillStyle = C[R.cv]; ctx.fill();
+      ctx.lineWidth = 2; ctx.strokeStyle = C["surface"]; ctx.stroke();
+      ctx.fillStyle = "#FFFFFF"; ctx.font = `700 ${sel ? 11 : 9}px Onest, system-ui, sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(R.no, x, y + 0.5);
+    }
+  });
+  ctx.globalAlpha = 1;
+
+  // pinlar
+  if (tab === "taxi") {
+    const o = S.taxi;
+    drawUser(now);
+    if (o.to != null) drawPin(o.to, "B", C["accent"], C["accent-ink"]);
+    if (o.stage !== "ride" && o.stage !== "done") drawPin(USER, "A", C["ink"], C["surface"]);
+  } else if (tab === "del" && !courierView) {
+    drawUser(now);
+    if (dl.ord) {
+      if (dl.stage !== "way" && dl.stage !== "done") drawPin(dl.ord.from, "A", C["ink"], C["surface"]);
+      drawPin(dl.ord.to, "B", C["accent"], C["accent-ink"]);
+    } else if (dl.kind === "parcel") {
+      drawPin(dl.from, "A", C["ink"], C["surface"]);
+      if (dl.to != null) drawPin(dl.to, "B", C["accent"], C["accent-ink"]);
+    }
+  } else if (courierView) {
+    const cs = S.cour, j = cs.offer || cs.trip;
+    if (j) { if (!cs.trip || cs.trip.stage === "toStore" || cs.trip.stage === "atStore") drawPin(j.from, "A", C["ink"], C["surface"]); drawPin(j.to, "B", C["accent"], C["accent-ink"]); }
+    drawCourier(MC, true, 1, cs.online ? C["go"] : C["muted"]);
+  } else if (tab === "yuk") {
+    const o = S.yuk;
+    drawUser(now);
+    if (o.to != null) drawPin(o.to, "B", C["accent"], C["accent-ink"]);
+    if (o.stage !== "ride" && o.stage !== "done") drawPin(o.from, "A", C["ink"], C["surface"]);
+  } else if (tab === "drv") {
+    const dd = S.drv, j = dd.offer || dd.trip;
+    if (j) { if (!dd.trip || dd.trip.stage !== "ride") drawPin(j.from, "A", C["ink"], C["surface"]); drawPin(j.to, "B", C["accent"], C["accent-ink"]); }
+    drawCar(ME.x, ME.y, ME.ang, dd.online ? C["go"] : C["muted"], { big: true, ring: C["surface"] });
+  }
+}
+
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  taxis.forEach(c => stepCar(c, dt)); cargos.forEach(c => stepCar(c, dt)); couriers.forEach(c => stepCar(c, dt));
+  stepCar(ME, dt); stepCar(MC, dt);
+  ROUTES.forEach(R => R.veh.forEach(v => { v.s = (v.s + R.speed * dt) % R.L; }));
+  draw(now);
+  requestAnimationFrame(frame);
+}
+
+/* ================= UI yordamchilari ================= */
+const sheet = document.getElementById("sheet");
+const toastEl = document.getElementById("toast");
+let toastT = null;
+function toast(msg) { toastEl.textContent = msg; toastEl.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => toastEl.classList.remove("show"), 2600); }
+const esc = s => String(s).replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
+const initials = n => n.replace(/[«»"]/g, "").split(" ").filter(Boolean).map(w => w[0]).join("").slice(0, 2).toUpperCase();
+const cap1 = s => s.charAt(0).toUpperCase() + s.slice(1);
+function plate(p) { const [reg, ...rest] = p.split(" "); return `<span class="plate" aria-label="Davlat raqami ${p}"><span class="reg">${reg}</span><span class="pn">${rest.join(" ")}</span><span class="uz"><i></i>UZ</span></span>`; }
+function dcard(c, phone) {
+  if (c.kind === "courier") return `<div class="dcard"><div class="ava c">${initials(c.name)}</div><div class="dinfo"><b>${esc(c.name)}</b><span>Kuryer · ★ ${c.rating}</span>${phone ? `<span class="tel">${c.phone}</span>` : ""}</div><span class="tbadge">${CT[c.type].name}</span></div>`;
+  const sub = c.kind === "cargo" ? `${GT[c.type].name} · ${c.model}` : `${c.model}, ${c.color}`;
+  return `<div class="dcard"><div class="ava ${c.kind === "cargo" ? "g" : ""}">${initials(c.name)}</div><div class="dinfo"><b>${esc(c.name)}</b><span>${sub} · ★ ${c.rating}</span>${phone ? `<span class="tel">${c.phone}</span>` : ""}</div>${plate(c.plate)}</div>`;
+}
+const SVG = {
+  car: `<svg viewBox="0 0 24 24"><path d="M4.5 16.5V12l2.2-5.2A1.5 1.5 0 0 1 8.1 6h7.8a1.5 1.5 0 0 1 1.4.8L19.5 12v4.5Z"/><path d="M4.5 12h15"/><circle cx="8" cy="16.6" r="1.5"/><circle cx="16" cy="16.6" r="1.5"/></svg>`,
+  bag: `<svg viewBox="0 0 24 24"><path d="M5 9h14l-1.2 10.2a1 1 0 0 1-1 .8H7.2a1 1 0 0 1-1-.8Z"/><path d="M9 9V7a3 3 0 0 1 6 0v2"/></svg>`,
+  truck: `<svg viewBox="0 0 24 24"><path d="M3 6.5h10.5v9.5H3z"/><path d="M13.5 10h4l3 3.2V16h-7"/><circle cx="7" cy="17" r="1.7"/><circle cx="17" cy="17" r="1.7"/></svg>`,
+  piyoda: `<svg viewBox="0 0 24 24"><circle cx="13" cy="4.5" r="1.8"/><path d="M10 21l2-6 2.5 2.5V21"/><path d="M8 11l3-3.5 3 1.5 2 3"/><path d="M11 7.5l1 7.5"/></svg>`,
+  velo: `<svg viewBox="0 0 24 24"><circle cx="6" cy="16" r="3.5"/><circle cx="18" cy="16" r="3.5"/><path d="M6 16l4-7h5l3 7"/><path d="M10 9l2 7h1"/><path d="M14 6h2"/></svg>`,
+  samokat: `<svg viewBox="0 0 24 24"><circle cx="6" cy="18" r="2.2"/><circle cx="18" cy="18" r="2.2"/><path d="M8.2 18h7.6"/><path d="M17 16l-2.5-11H17"/></svg>`,
+  skuter: `<svg viewBox="0 0 24 24"><circle cx="6" cy="17" r="2.6"/><circle cx="18" cy="17" r="2.6"/><path d="M8.6 17H14l2-6h-3"/><path d="M16 11l2 6"/><path d="M5 12h6v3"/></svg>`,
+  avto: `<svg viewBox="0 0 24 24"><path d="M4.5 16.5V12l2.2-5.2A1.5 1.5 0 0 1 8.1 6h7.8a1.5 1.5 0 0 1 1.4.8L19.5 12v4.5Z"/><path d="M4.5 12h15"/><circle cx="8" cy="16.6" r="1.5"/><circle cx="16" cy="16.6" r="1.5"/></svg>`,
+  moto: `<svg viewBox="0 0 24 24"><circle cx="5.5" cy="17" r="2.3"/><circle cx="18.5" cy="17" r="2.3"/><path d="M12 9h9v6h-1"/><path d="M7.8 17h8.4"/><path d="M5.5 14.7L8 9h4"/></svg>`,
+  traktor: `<svg viewBox="0 0 24 24"><circle cx="7" cy="16" r="4"/><circle cx="18" cy="17.5" r="2.5"/><path d="M5 12V6h6l1 6"/><path d="M11 12h8v3"/><path d="M15 12V8"/></svg>`
+};
+const vIcon = id => SVG[id] || SVG.truck;
+const radar = icon => `<div class="radar"><i></i><i></i><span>${icon}</span></div>`;
+const stars = r => `<div class="stars" role="group" aria-label="Baholang">${[1,2,3,4,5].map(i => `<button class="star ${r >= i ? "on" : ""}" data-act="star" data-v="${i}" aria-label="${i} yulduz">★</button>`).join("")}</div><p class="hint" style="text-align:center">${r ? "Bahoyingiz uchun rahmat!" : "Xizmat qanday bo‘ldi? Baholang"}</p>`;
+const nodeOpts = sel => NODES.map((_, n) => n).sort((a, b) => NAMES[a].localeCompare(NAMES[b], "uz")).map(n => `<option value="${n}" ${sel === n ? "selected" : ""}>${NAMES[n]}${n === USER ? " (siz)" : ""}</option>`).join("");
+
+/* ================= Taksi ================= */
+function rTaxi() {
+  const o = S.taxi, t = TAXI_T.find(x => x.id === o.tariff);
+  if (o.stage === "select") {
+    const u = o.to != null ? pdist(USER, o.to) : 0;
+    return `
+      <div class="trip">
+        <div class="pt"><span class="mk a">A</span><div><small>Qayerdan</small><b>${NAMES[USER]} yonida · siz</b></div></div>
+        <div class="pt"><span class="mk b">B</span><div><small>Qayerga</small><b class="${o.to == null ? "ph" : ""}">${o.to == null ? "Manzilni tanlang" : NAMES[o.to]}</b></div>${o.to != null ? `<span class="dist">${km(u).toFixed(1)} km</span>` : ""}</div>
+      </div>
+      <div class="chips">${QUICK.map(n => `<button class="chip ${o.to === n ? "on" : ""}" data-act="dest" data-n="${n}">${NAMES[n]}</button>`).join("")}</div>
+      <p class="hint">Yoki xaritada kerakli joyga bosing.</p>
+      <div class="tariffs">${TAXI_T.map(x => `<button class="tariff ${o.tariff === x.id ? "on" : ""}" data-act="tariff" data-id="${x.id}" aria-pressed="${o.tariff === x.id}"><span class="tn">${x.name}</span><span class="tp">${o.to != null ? fmt(taxiPrice(x, u)) : fmt(x.min) + "dan"}</span><span class="tm">${x.cars}<br><span class="teta">…</span></span></button>`).join("")}</div>
+      <button class="btn" data-act="call" ${o.to == null ? "disabled" : ""}>Taksi chaqirish${o.to != null ? " · " + fmt(taxiPrice(t, u)) : ""}</button>`;
+  }
+  if (o.stage === "search") return `
+      <div class="status center">${radar(SVG.car)}<h2>Haydovchi qidirilmoqda</h2><p>Yaqin atrofdagi bo‘sh taksilarga so‘rov yuborildi</p></div>
+      <div class="sum"><span>${NAMES[o.to]} · ${t.name}</span><b>${fmt(o.price)}</b></div>
+      <button class="btn ghost danger" data-act="cancel">Bekor qilish</button>`;
+  if (o.stage === "coming") return `
+      <div class="status"><h2>Haydovchi yo‘lda</h2><p><span class="num" id="eta">…</span> daqiqada yetib keladi</p></div>
+      ${dcard(o.car, o.showPhone)}
+      <div class="row2"><button class="btn ghost" data-act="phone">${o.showPhone ? "Raqamni yashirish" : "Qo‘ng‘iroq"}</button><button class="btn ghost danger" data-act="cancel">Bekor qilish</button></div>
+      <div class="sum"><span>${NAMES[o.to]} · ${t.name}</span><b>${fmt(o.price)}</b></div>`;
+  if (o.stage === "arrived") return `
+      <div class="status"><h2>Haydovchi yetib keldi</h2><p>${cap1(o.car.color)} ${o.car.model} sizni kutyapti</p></div>
+      ${dcard(o.car, o.showPhone)}
+      <button class="btn" data-act="sit">Mashinaga o‘tirdim</button>`;
+  if (o.stage === "ride") return `
+      <div class="status"><h2>Yo‘ldasiz</h2><p>${NAMES[o.to]}gacha <span class="num" id="eta">…</span> daqiqa</p></div>
+      <div class="prog"><i id="prog"></i></div>
+      ${dcard(o.car, false)}
+      <div class="sum"><span>To‘lov: ${o.pay === "naqd" ? "naqd" : "karta"}</span><b>${fmt(o.price)}</b></div>`;
+  return `
+      <div class="status center"><h2>Yetib keldingiz</h2><p>${NAMES[o.to]} · ${o.car.name}</p><span class="big-price">${fmt(o.price)}</span></div>
+      <div class="chips" style="justify-content:center">
+        <button class="chip ${o.pay === "naqd" ? "on" : ""}" data-act="pay" data-v="naqd">Naqd</button>
+        <button class="chip ${o.pay === "karta" ? "on" : ""}" data-act="pay" data-v="karta">Karta (Click, Payme)</button></div>
+      ${stars(o.rating)}
+      <button class="btn" data-act="newTaxi">Yangi buyurtma</button>`;
+}
+
+/* ================= Yetkazish: mijoz ================= */
+const cartList = o => Object.entries(o.cart).filter(([, q]) => q > 0).map(([i, q]) => ({ i: +i, q, it: STORES[o.store].menu[+i] }));
+const cartSum = o => cartList(o).reduce((s, x) => s + x.it[2] * x.q, 0);
+const cartQty = o => cartList(o).reduce((s, x) => s + x.q, 0);
+const cartKg = o => cartList(o).reduce((s, x) => s + x.it[3] * x.q, 0);
+function transportCards(from, to, kg, prep) {
+  const o = S.del, u = pdist(from, to);
+  return `<div class="hscroll">${COUR_T.map(t => {
+    const tooFar = km(u) > t.max, tooHeavy = kg > t.capKg, off = tooFar || tooHeavy;
+    const c = nearestFree(couriers, from, x => x.type === t.id);
+    const eta = c ? prep + mins(distTo(c, from), t.kmh) + mins(u, t.kmh) : null;
+    const why = tooFar ? `${t.max} km gacha yuradi` : tooHeavy ? `${t.capKg} kg gacha oladi` : eta ? `≈${eta} daqiqa` : "Hozir band";
+    return `<button class="tariff ${o.transport === t.id && !off ? "on" : ""}" data-act="transport" data-id="${t.id}" ${off || !c ? "disabled" : ""}><span class="tic">${vIcon(t.id)}</span><span class="tn">${t.name}</span><span class="tp">${fmt(courFee(t, u))}</span><span class="tm">${why}</span></button>`;
+  }).join("")}</div>`;
+}
+function pickTransport(from, to, kg) {
+  const o = S.del, u = pdist(from, to);
+  const ok = t => km(u) <= t.max && kg <= t.capKg && nearestFree(couriers, from, x => x.type === t.id);
+  if (!ok(CT[o.transport])) { const t = COUR_T.find(ok); if (t) o.transport = t.id; }
+  return ok(CT[o.transport]);
+}
+function rDelClient() {
+  const o = S.del;
+  if (o.stage === "browse") {
+    const kinds = `<div class="chips">${[["food","Ovqat"],["shop","Mahsulotlar"],["parcel","Posilka"]].map(([k, n]) => `<button class="chip ${o.kind === k ? "on" : ""}" data-act="kind" data-v="${k}">${n}</button>`).join("")}</div>`;
+    if (o.kind === "parcel") {
+      const ok = o.to != null && o.to !== o.from, kg = ITEMS[o.item].kg;
+      const has = ok && pickTransport(o.from, o.to, kg);
+      const fee = ok ? courFee(CT[o.transport], pdist(o.from, o.to)) : 0;
+      return kinds + `
+        <div class="grid2">
+          <div class="field"><label for="dFrom">Qayerdan</label><select class="inp" id="dFrom">${nodeOpts(o.from)}</select></div>
+          <div class="field"><label for="dTo">Qayerga</label><select class="inp" id="dTo"><option value="" ${o.to == null ? "selected" : ""} disabled>Tanlang</option>${nodeOpts(o.to)}</select></div>
+        </div>
+        <div class="field"><span class="lbl">Nima jo‘natiladi</span><div class="chips">${ITEMS.map((it, i) => `<button class="chip ${o.item === i ? "on" : ""}" data-act="item" data-v="${i}">${it.n} · ${it.kg} kg</button>`).join("")}</div></div>
+        <div class="field"><label for="dPhone">Qabul qiluvchining telefoni</label><input class="inp" id="dPhone" type="tel" inputmode="tel" placeholder="+998 90 123 45 67" value="${esc(o.phone)}"></div>
+        ${ok ? `<div class="field"><span class="lbl">Kim olib boradi</span>${transportCards(o.from, o.to, kg, 2)}</div>` : `<p class="hint">Manzilni ro‘yxatdan tanlang yoki xaritaga bosing.</p>`}
+        <button class="btn" data-act="parcelGo" ${has ? "" : "disabled"}>Kuryer chaqirish${has ? " · " + fmt(fee) : ""}</button>`;
+    }
+    const list = STORES.filter(s => s.kind === o.kind);
+    return kinds + `
+      <p class="hint">${o.kind === "food" ? "Restoran va choyxonalar" : "Do‘kon va bozor rastalari"} · yetkazish narxi masofaga qarab, oldindan ko‘rinadi</p>
+      <div class="stores">${list.map(s => {
+        const u = pdist(s.node, USER), cheap = Math.min(...COUR_T.filter(t => km(u) <= t.max).map(t => courFee(t, u)));
+        return `<button class="store" data-act="store" data-v="${s.id}"><span class="sic">${initials(s.name)}</span><span><b>${s.name}</b><span>${s.tag}</span><span>★ ${s.rating} · ${km(u).toFixed(1)} km · ${s.prep + mins(u, 18)}–${s.prep + mins(u, 18) + 10} daq</span></span><span class="from">yetkazish<br><b>${fmtK(cheap)}</b> dan</span></button>`;
+      }).join("")}</div>`;
+  }
+  if (o.stage === "store") {
+    const s = STORES[o.store], q = cartQty(o);
+    return `
+      <button class="back" data-act="toBrowse">← Orqaga</button>
+      <div class="status"><h2>${s.name}</h2><p>${s.tag} · ★ ${s.rating} · ${NAMES[s.node]}</p></div>
+      <ul class="menu">${s.menu.map((m, i) => { const n = o.cart[i] || 0; return `<li class="mi"><div><b>${m[0]}</b><span>${m[1]} · <span class="pr">${fmt(m[2])}</span></span></div>${n ? `<div class="step"><button data-act="dec" data-v="${i}" aria-label="Kamaytirish">−</button><b>${n}</b><button data-act="inc" data-v="${i}" aria-label="Ko‘paytirish">+</button></div>` : `<button class="add" data-act="inc" data-v="${i}">+ Qo‘shish</button>`}</li>`; }).join("")}</ul>
+      <div class="cartbar"><button class="btn" data-act="checkout" ${q ? "" : "disabled"}>${q ? `Savat · ${q} ta · ${fmt(cartSum(o))}` : "Savat bo‘sh"}</button></div>`;
+  }
+  if (o.stage === "checkout") {
+    const s = STORES[o.store], kg = cartKg(o), u = pdist(s.node, USER);
+    const has = pickTransport(s.node, USER, kg);
+    const fee = courFee(CT[o.transport], u), goods = cartSum(o);
+    return `
+      <button class="back" data-act="toStore">← ${s.name}</button>
+      <div class="trip compact">
+        <div class="pt"><span class="mk a">A</span><div><small>Qayerdan</small><b>${s.name}</b></div></div>
+        <div class="pt"><span class="mk b">B</span><div><small>Qayerga</small><b>${NAMES[USER]} yonida · siz</b></div><span class="dist">${km(u).toFixed(1)} km</span></div>
+      </div>
+      <div class="field"><span class="lbl">Kim olib keladi · og‘irligi ≈${kg.toFixed(1)} kg</span>${transportCards(s.node, USER, kg, s.prep)}</div>
+      <div class="bd">${cartList(o).map(x => `<span>${x.it[0]} × ${x.q}</span><span>${fmt(x.it[2] * x.q)}</span>`).join("")}
+        <span>Yetkazish (${CT[o.transport].name.toLowerCase()})</span><span>${has ? fmt(fee) : "—"}</span>
+        <span class="tot">Jami</span><span class="tot">${has ? fmt(goods + fee) : "—"}</span></div>
+      <div class="chips"><button class="chip ${o.pay === "naqd" ? "on" : ""}" data-act="dpay" data-v="naqd">Naqd kuryerga</button><button class="chip ${o.pay === "karta" ? "on" : ""}" data-act="dpay" data-v="karta">Karta (Click, Payme)</button></div>
+      <button class="btn" data-act="orderGo" ${has ? "" : "disabled"}>Buyurtma berish${has ? " · " + fmt(goods + fee) : ""}</button>`;
+  }
+  const r = o.ord, code = `<div class="code-box"><small>${r.store ? "Kuryerga shu kodni ayting, shunda buyurtma topshiriladi" : "Qabul qiluvchi bu kodni kuryerga aytadi"}</small><span class="code">${o.code}</span></div>`;
+  if (o.stage === "search") return `
+      <div class="status center">${radar(SVG.bag)}<h2>Kuryer qidirilmoqda</h2><p>${r.title}</p></div>
+      <div class="sum"><span>${CT[r.transport].name}</span><b>${fmt(r.total)}</b></div>
+      <button class="btn ghost danger" data-act="delCancel">Bekor qilish</button>`;
+  if (o.stage === "pickup") return `
+      <div class="status"><h2>${r.store ? "Kuryer " + r.store + "ga ketyapti" : "Kuryer jo‘natmani olishga ketyapti"}</h2><p>${NAMES[r.from]} · <span class="num" id="eta">…</span> daqiqa${r.store ? ". Taom tayyorlanmoqda" : ""}</p></div>
+      ${dcard(o.car, o.showPhone)}${code}
+      <div class="row2"><button class="btn ghost" data-act="dphone">${o.showPhone ? "Raqamni yashirish" : "Qo‘ng‘iroq"}</button><button class="btn ghost danger" data-act="delCancel">Bekor qilish</button></div>`;
+  if (o.stage === "prep") return `
+      <div class="status"><h2>${r.store ? "Kuryer buyurtmangizni olyapti" : "Kuryer jo‘natmani olyapti"}</h2><p>${r.store ? r.store + " qadoqlab bermoqda" : NAMES[r.from]}</p></div>
+      ${dcard(o.car, false)}${code}`;
+  if (o.stage === "way") return `
+      <div class="status"><h2>Buyurtma yo‘lda</h2><p>${NAMES[r.to]}ga <span class="num" id="eta">…</span> daqiqa qoldi</p></div>
+      <div class="prog"><i id="prog"></i></div>
+      ${dcard(o.car, false)}${code}
+      <div class="sum"><span>${r.items}</span><b>${fmt(r.total)}</b></div>`;
+  return `
+      <div class="status center"><h2>${r.store ? "Buyurtma yetkazildi" : "Jo‘natma topshirildi"}</h2><p>${NAMES[r.to]} · kod ${o.code} tasdiqlandi</p><span class="big-price">${fmt(r.total)}</span></div>
+      <div class="bd">${r.goods ? `<span>Mahsulotlar</span><span>${fmt(r.goods)}</span>` : ""}<span>Yetkazish (${CT[r.transport].name.toLowerCase()})</span><span>${fmt(r.fee)}</span><span class="tot">Jami</span><span class="tot">${fmt(r.total)}</span></div>
+      ${stars(o.rating)}
+      <button class="btn" data-act="delNew">Yangi buyurtma</button>`;
+}
+
+/* ================= Yetkazish: kuryer ilovasi ================= */
+function rCourier() {
+  const cs = S.cour, t = CT[MC.type];
+  let body = "";
+  if (cs.trip) {
+    const j = cs.trip;
+    const head = { toStore: [`${j.store ? j.store + "ga" : "Jo‘natma oldiga"}`, `${NAMES[j.from]} · <span class="num" id="ceta">…</span> daqiqa`],
+      atStore: [j.store ? "Buyurtmani oling" : "Jo‘natmani oling", `${j.items}`],
+      toClient: ["Mijozga", `${NAMES[j.to]} · <span class="num" id="ceta">…</span> daqiqa`],
+      atClient: ["Mijozdan kodni so‘rang", `${NAMES[j.to]}. Kod to‘g‘ri bo‘lsagina topshiring`] }[j.stage];
+    body = `<div class="status"><h2>${head[0]}</h2><p>${head[1]}</p></div>`;
+    if (j.stage === "toClient") body += `<div class="prog"><i id="cprog"></i></div>`;
+    body += `<div class="trip compact"><div class="pt"><span class="mk a">A</span><div><b>${j.store || NAMES[j.from]}</b></div></div><div class="pt"><span class="mk b">B</span><div><b>${NAMES[j.to]}</b></div><span class="dist">${fmt(j.fee)}</span></div></div>`;
+    if (j.stage === "atStore") body += `<button class="btn" data-act="cGot">Oldim, yo‘lga chiqaman</button>`;
+    if (j.stage === "atClient") body += `<div class="field"><label for="cCode">Mijoz aytgan 4 xonali kod</label><input class="inp" id="cCode" inputmode="numeric" maxlength="4" placeholder="• • • •" autocomplete="off"></div>
+      ${cs.err ? `<p class="err">${cs.err}</p>` : ""}<p class="hint">Namunada mijoz kodi: ${j.code}</p>
+      <button class="btn" data-act="cDone">Topshirdim</button>`;
+  } else if (cs.offer) {
+    const f = cs.offer, fee10 = Math.round(f.fee * .1), tax = Math.round(f.fee * .01);
+    body = `<div class="offer">
+      <div class="ohead"><b>Yangi buyurtma</b><span class="oprice">${fmt(f.fee - fee10 - tax)}</span></div>
+      <div class="ometa">${f.items}</div>
+      <div class="trip compact"><div class="pt"><span class="mk a">A</span><div><b>${f.store || NAMES[f.from]}</b></div><span class="dist">${km(f.pick).toFixed(1)} km sizdan</span></div><div class="pt"><span class="mk b">B</span><div><b>${NAMES[f.to]}</b></div><span class="dist">${km(f.u).toFixed(1)} km</span></div></div>
+      <div class="ometa">Mijoz to‘laydi ${fmt(f.fee)} · sizga xizmat haqi va soliqdan keyin</div>
+      <div class="prog"><i id="cbar" style="width:100%"></i></div>
+      <div class="row2"><button class="btn ghost" data-act="cSkip">O‘tkazib yuborish</button><button class="btn" data-act="cAccept">Qabul qilish</button></div></div>`;
+  } else body = `<div class="idle">${cs.online ? `<span class="live-dot"></span>Buyurtma kutilmoqda. ${t.name}da ${t.max} km gacha buyurtmalar keladi.` : "Siz dam olyapsiz. Buyurtma olish uchun «Ishdaman»ni yoqing."}</div>`;
+  const lt = cs.last;
+  return `
+    <div class="drv-head"><div class="ava c">${initials(MC.name)}</div><div class="dinfo"><b>${MC.name}</b><span>Kuryer · ${t.name} · ★ ${MC.rating}</span></div>
+      <button class="switch" role="switch" aria-checked="${cs.online}" data-act="cToggle" ${cs.trip ? "disabled" : ""}><span>${cs.online ? "Ishdaman" : "Dam olyapman"}</span><span class="knob"></span></button></div>
+    <div class="field"><span class="lbl">Transportingiz</span><div class="chips">${COUR_T.filter(x => x.id !== "avto").map(x => `<button class="chip ${MC.type === x.id ? "on" : ""}" data-act="cType" data-v="${x.id}" ${cs.trip || cs.offer ? "disabled" : ""}>${x.name}</button>`).join("")}</div></div>
+    <div class="stats"><div class="stat"><small>Bugun</small><b>${fmt(cs.earn)}</b></div><div class="stat"><small>Yetkazildi</small><b>${cs.trips}</b></div><div class="stat"><small>Reyting</small><b>★ ${MC.rating}</b></div></div>
+    ${body}
+    ${lt ? `<div class="bd"><span class="cap">Oxirgi yetkazish · ${lt.where}</span><span>Yetkazish haqi</span><span>${fmt(lt.fee)}</span><span>Xizmat haqi (10%)</span><span class="neg">−${fmt(lt.f10)}</span><span>Soliq (1%)</span><span class="neg">−${fmt(lt.tax)}</span><span class="tot">Sizga</span><span class="tot">${fmt(lt.net)}</span></div>` : ""}`;
+}
+function rDel() {
+  const o = S.del;
+  return `<div class="seg"><button class="${o.mode === "client" ? "on" : ""}" data-act="dmode" data-v="client">Buyurtmachi</button><button class="${o.mode === "courier" ? "on" : ""}" data-act="dmode" data-v="courier">Kuryer ilovasi</button></div>`
+    + (o.mode === "courier" ? rCourier() : rDelClient());
+}
+
+/* ================= Yuk tashish ================= */
+function rYuk() {
+  const o = S.yuk, t = GT[o.veh];
+  if (o.stage === "form") {
+    const ok = o.to != null && o.to !== o.from, u = ok ? pdist(o.from, o.to) : 0;
+    return `
+      <div class="status"><h2>Yuk tashish</h2><p>Mototsikldan KamAZgacha. Narx oldindan ko‘rinadi</p></div>
+      <div class="grid2">
+        <div class="field"><label for="yFrom">Qayerdan</label><select class="inp" id="yFrom">${nodeOpts(o.from)}</select></div>
+        <div class="field"><label for="yTo">Qayerga</label><select class="inp" id="yTo"><option value="" ${o.to == null ? "selected" : ""} disabled>Tanlang</option>${nodeOpts(o.to)}</select></div>
+      </div>
+      <div class="vlist">${CARGO_T.map(x => {
+        const c = nearestFree(cargos, o.from, v => v.type === x.id);
+        return `<button class="veh ${o.veh === x.id ? "on" : ""}" data-act="veh" data-id="${x.id}" aria-pressed="${o.veh === x.id}"><span class="vic">${vIcon(x.id)}</span><span><b>${x.name}</b><span>${x.sub} · ${x.cap}</span><span>${c ? "≈" + mins(distTo(c, o.from), x.kmh) + " daqiqada keladi" : "Hozir band"}</span></span><span class="vp"><b>${ok ? fmt(cargoPrice(x, u, 0)) : fmt(x.min)}</b><span>${ok ? km(u).toFixed(1) + " km" : "dan"}</span></span></button>`;
+      }).join("")}</div>
+      <div class="helpers"><div><b>Yuklovchi yordamchi</b><small>Har biri ${fmt(HELPER)}</small></div><div class="step"><button data-act="hDec" aria-label="Kamaytirish">−</button><b>${o.helpers}</b><button data-act="hInc" aria-label="Ko‘paytirish">+</button></div></div>
+      ${ok ? "" : `<p class="hint">Manzilni ro‘yxatdan tanlang yoki xaritaga bosing.</p>`}
+      <button class="btn" data-act="yGo" ${ok ? "" : "disabled"}>${t.name} chaqirish${ok ? " · " + fmt(cargoPrice(t, u, o.helpers)) : ""}</button>`;
+  }
+  if (o.stage === "search") return `
+      <div class="status center">${radar(SVG.truck)}<h2>${t.name} qidirilmoqda</h2><p>${NAMES[o.from]} → ${NAMES[o.to]}</p></div>
+      <div class="sum"><span>${t.name}${o.helpers ? " · " + o.helpers + " yordamchi" : ""}</span><b>${fmt(o.price)}</b></div>
+      <button class="btn ghost danger" data-act="yCancel">Bekor qilish</button>`;
+  if (o.stage === "coming") return `
+      <div class="status"><h2>${t.name} yo‘lda</h2><p>${NAMES[o.from]}ga <span class="num" id="eta">…</span> daqiqada yetadi</p></div>
+      ${dcard(o.car, o.showPhone)}
+      <div class="row2"><button class="btn ghost" data-act="yPhone">${o.showPhone ? "Raqamni yashirish" : "Qo‘ng‘iroq"}</button><button class="btn ghost danger" data-act="yCancel">Bekor qilish</button></div>
+      <div class="sum"><span>${t.name}${o.helpers ? " · " + o.helpers + " yordamchi" : ""}</span><b>${fmt(o.price)}</b></div>`;
+  if (o.stage === "loading") return `
+      <div class="status"><h2>Yuk ortilmoqda</h2><p>${NAMES[o.from]}. Tayyor bo‘lgach tugmani bosing</p></div>
+      ${dcard(o.car, false)}
+      <button class="btn" data-act="yLoaded">Yuk ortildi, jo‘nash</button>`;
+  if (o.stage === "ride") return `
+      <div class="status"><h2>Yuk yo‘lda</h2><p>${NAMES[o.to]}gacha <span class="num" id="eta">…</span> daqiqa</p></div>
+      <div class="prog"><i id="prog"></i></div>
+      ${dcard(o.car, false)}
+      <div class="sum"><span>${t.name}</span><b>${fmt(o.price)}</b></div>`;
+  const u = pdist(o.from, o.to), base = cargoPrice(t, u, 0);
+  return `
+      <div class="status center"><h2>Yuk yetkazildi</h2><p>${NAMES[o.to]} · ${o.car.name}</p><span class="big-price">${fmt(o.price)}</span></div>
+      <div class="bd"><span>${t.name}, ${km(u).toFixed(1)} km</span><span>${fmt(base)}</span>${o.helpers ? `<span>Yordamchi × ${o.helpers}</span><span>${fmt(o.helpers * HELPER)}</span>` : ""}<span class="tot">Jami</span><span class="tot">${fmt(o.price)}</span></div>
+      ${stars(o.rating)}
+      <button class="btn" data-act="yNew">Yangi buyurtma</button>`;
+}
+
+/* ================= Marshrut ================= */
+function rBus() {
+  const R = ROUTES[S.bus.r], stop = S.bus.stop[S.bus.r];
+  return `
+    <div class="rchips">${ROUTES.map((x, i) => `<button class="rchip ${i === S.bus.r ? "on" : ""}" style="--rc:var(--${x.cv})" data-act="route" data-v="${i}" aria-pressed="${i === S.bus.r}"><span class="rno">№${x.no}</span><span>${x.kind} · ${fmt(x.fare)}</span></button>`).join("")}</div>
+    <div class="next" style="--rc:var(--${R.cv})">
+      <div><small>${NAMES[stop]} bekatiga</small><b>№${R.no} ${R.kind.toLowerCase()}</b><span class="nx2">Keyingisi: <span id="mEta2">…</span></span></div>
+      <div class="when" id="mEta">…</div>
+    </div>
+    <p class="hint">${R.desc} · yo‘l haqi ${fmt(R.fare)}. Bekatni ro‘yxatdan yoki xaritadan tanlang.</p>
+    <ul class="stops" style="--rc:var(--${R.cv})">${R.stops.map(n => `<li><button class="stop ${n === stop ? "on" : ""}" data-act="stop" data-n="${n}"><span class="node"></span><span class="sn">${NAMES[n]}${n === stop ? "<em>bekatim</em>" : ""}</span><span class="m" data-m="${n}">…</span></button></li>`).join("")}</ul>`;
+}
+
+/* ================= Haydovchi ================= */
+function rDrv() {
+  const dd = S.drv;
+  let body = "";
+  if (dd.trip) {
+    const t = dd.trip;
+    if (t.stage === "pickup") body = `<div class="status"><h2>Yo‘lovchi oldiga</h2><p>${NAMES[t.from]} · <span class="num" id="reta">…</span> daqiqa</p></div>`;
+    else if (t.stage === "wait") body = `<div class="status"><h2>Yo‘lovchi chiqmoqda</h2><p>${NAMES[t.from]}da kutyapsiz</p></div>`;
+    else body = `<div class="status"><h2>Manzilga</h2><p>${NAMES[t.to]} · <span class="num" id="reta">…</span> daqiqa</p></div><div class="prog"><i id="rprog"></i></div>`;
+    body += `<div class="trip compact"><div class="pt"><span class="mk a">A</span><div><b>${NAMES[t.from]}</b></div></div><div class="pt"><span class="mk b">B</span><div><b>${NAMES[t.to]}</b></div><span class="dist">${fmt(t.price)}</span></div></div>`;
+  } else if (dd.offer) {
+    const f = dd.offer;
+    body = `<div class="offer">
+      <div class="ohead"><b>Yangi buyurtma</b><span class="oprice">${fmt(f.price)}</span></div>
+      <div class="trip compact"><div class="pt"><span class="mk a">A</span><div><b>${NAMES[f.from]}</b></div><span class="dist">${km(f.pick).toFixed(1)} km sizdan</span></div><div class="pt"><span class="mk b">B</span><div><b>${NAMES[f.to]}</b></div><span class="dist">${km(f.u).toFixed(1)} km</span></div></div>
+      <div class="prog"><i id="obar" style="width:100%"></i></div>
+      <div class="row2"><button class="btn ghost" data-act="skip">O‘tkazib yuborish</button><button class="btn" data-act="accept">Qabul qilish</button></div></div>`;
+  } else body = `<div class="idle">${dd.online ? `<span class="live-dot"></span>Buyurtma kutilmoqda. Yaqin atrofdagi so‘rovlar shu yerda chiqadi.` : "Siz hozir dam olyapsiz. Buyurtma olish uchun «Ishdaman» tugmasini yoqing."}</div>`;
+  const lt = dd.last;
+  return `
+    <div class="drv-head"><div class="ava">${initials(ME.name)}</div><div class="dinfo"><b>${ME.name}</b><span>${ME.model}, ${ME.color} · ${ME.plate}</span></div>
+      <button class="switch" role="switch" aria-checked="${dd.online}" data-act="toggle" ${dd.trip ? "disabled" : ""}><span>${dd.online ? "Ishdaman" : "Dam olyapman"}</span><span class="knob"></span></button></div>
+    <div class="stats"><div class="stat"><small>Bugun</small><b>${fmt(dd.earn)}</b></div><div class="stat"><small>Safarlar</small><b>${dd.trips}</b></div><div class="stat"><small>Reyting</small><b>★ ${ME.rating}</b></div></div>
+    ${body}
+    ${lt ? `<div class="bd"><span class="cap">Oxirgi safar · ${NAMES[lt.from]} → ${NAMES[lt.to]}</span><span>Yo‘lovchi to‘ladi</span><span>${fmt(lt.price)}</span><span>Xizmat haqi (10%)</span><span class="neg">−${fmt(lt.fee)}</span><span>Soliq (1%)</span><span class="neg">−${fmt(lt.tax)}</span><span class="tot">Sizga</span><span class="tot">${fmt(lt.net)}</span></div>` : ""}`;
+}
+
+/* ================= Narxlar ro'yxati ================= */
+function renderPrices() {
+  const row = (cells) => `<tr>${cells.map(c => `<td>${c}</td>`).join("")}</tr>`;
+  document.getElementById("prices").innerHTML = `
+    <div class="mhead"><h2 id="pricesTitle">Narxlar</h2><button class="x" data-close aria-label="Yopish">×</button></div>
+    <div class="psec"><p>Barcha narxlar mijozlarga ochiq. Safar narxi buyurtma berishdan oldin aniq ko‘rinadi va yo‘lda o‘zgarmaydi. Namunadagi narxlar taxminiy, tumanga moslab o‘zgartiriladi.</p></div>
+    <div class="psec"><h3>Taksi</h3><div class="twrap"><table><thead><tr><th>Tarif</th><th>Chiqish</th><th>1 km</th><th>Eng kam</th></tr></thead><tbody>
+      ${TAXI_T.map(t => row([`<b>${t.name}</b><span>${t.cars}</span>`, fmtK(t.base), fmtK(t.perKm), fmtK(t.min)])).join("")}</tbody></table></div></div>
+    <div class="psec"><h3>Yuk tashish</h3><div class="twrap"><table><thead><tr><th>Transport</th><th>Chiqish</th><th>1 km</th><th>Eng kam</th></tr></thead><tbody>
+      ${CARGO_T.map(t => row([`<b>${t.name}</b><span>${t.cap}</span>`, fmtK(t.base), fmtK(t.perKm), fmtK(t.min)])).join("")}
+      ${row([`<b>Yuklovchi yordamchi</b><span>1 kishi, 1 buyurtma</span>`, "", "", fmtK(HELPER)])}</tbody></table></div></div>
+    <div class="psec"><h3>Yetkazib berish</h3><div class="twrap"><table><thead><tr><th>Kuryer</th><th>Chiqish</th><th>1 km</th><th>Masofa</th></tr></thead><tbody>
+      ${COUR_T.map(t => row([`<b>${t.name}</b><span>${t.capKg} kg gacha</span>`, fmtK(t.base), fmtK(t.perKm), `${t.max} km gacha`])).join("")}</tbody></table></div>
+      <p>Ovqat va mahsulotlar narxi do‘kon menyusida yoziladi, yetkazish narxi alohida qo‘shiladi.</p></div>
+    <div class="psec"><h3>Marshrut</h3><div class="twrap"><table><thead><tr><th>Yo‘nalish</th><th>Yo‘l haqi</th></tr></thead><tbody>
+      ${ROUTES.map(R => row([`<b>№${R.no} ${R.kind.toLowerCase()}</b><span>${R.desc}</span>`, fmtK(R.fare)])).join("")}</tbody></table></div>
+      <p>Barcha narxlar so‘mda.</p></div>`;
+}
+const pricesEl = document.getElementById("prices");
+document.getElementById("pricesBtn").addEventListener("click", () => { renderPrices(); pricesEl.hidden = false; pricesEl.scrollTop = 0; pricesEl.querySelector(".x").focus(); });
+pricesEl.addEventListener("click", e => { if (e.target.closest("[data-close]")) pricesEl.hidden = true; });
+document.addEventListener("keydown", e => { if (e.key === "Escape") pricesEl.hidden = true; });
+
+/* ================= Render va jonli yangilash ================= */
+let lastKey = "";
+function render() {
+  const t = S.tab;
+  const html = t === "taxi" ? rTaxi() : t === "del" ? rDel() : t === "yuk" ? rYuk() : t === "bus" ? rBus() : rDrv();
+  sheet.innerHTML = `<div class="grip"></div><div class="sheet-in">${html}</div>`;
+  const key = t + (t === "taxi" ? S.taxi.stage : t === "del" ? S.del.mode + S.del.stage + S.del.kind : t === "yuk" ? S.yuk.stage : "");
+  if (key !== lastKey) { sheet.scrollTop = 0; lastKey = key; }
+  document.querySelectorAll(".tab").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === t)));
+  live();
+}
+const setT = (id, v) => { const e = document.getElementById(id); if (e && e.textContent !== String(v)) e.textContent = v; };
+const setW = (id, f) => { const e = document.getElementById(id); if (e) e.style.width = (Math.max(0, Math.min(1, f)) * 100).toFixed(1) + "%"; };
+
+function live() {
+  const now = performance.now(), dd = S.drv, cs = S.cour;
+  if (dd.offer && now > dd.offer.exp) { dd.offer = null; if (S.tab === "drv") render(); scheduleOffer(); return; }
+  if (cs.offer && now > cs.offer.exp) { cs.offer = null; if (S.tab === "del") render(); scheduleCour(); return; }
+  const t = S.tab;
+  const badge = t === "taxi" ? `${taxis.filter(c => c.free).length} ta bo‘sh taksi`
+    : t === "del" ? (S.del.mode === "courier" ? (cs.online ? "Siz ishdasiz" : "Siz dam olyapsiz") : `${couriers.filter(c => c.free).length} ta kuryer bo‘sh`)
+    : t === "yuk" ? `${cargos.filter(c => c.free).length} ta yuk transporti bo‘sh`
+    : t === "bus" ? `${ROUTES.reduce((s, R) => s + R.n, 0)} ta avtobus va marshrutka` : (dd.online ? "Siz ishdasiz" : "Siz dam olyapsiz");
+  setT("badgeTxt", badge);
+  if (t === "taxi") {
+    const o = S.taxi;
+    if (o.stage === "select") {
+      const c = nearestFree(taxis, USER), m = c ? `≈${mins(distTo(c, USER), 27)} daq. yetadi` : "Hammasi band";
+      document.querySelectorAll(".teta").forEach(e => { if (e.textContent !== m) e.textContent = m; });
+    }
+    if (o.car && (o.stage === "coming" || o.stage === "ride")) setT("eta", mins(rem(o.car), 27));
+    if (o.stage === "ride") setW("prog", 1 - rem(o.car) / o.total);
+  } else if (t === "del") {
+    const o = S.del;
+    if (o.mode === "client" && o.car && (o.stage === "pickup" || o.stage === "way")) setT("eta", mins(rem(o.car), o.car.kmh));
+    if (o.mode === "client" && o.stage === "way") setW("prog", 1 - rem(o.car) / o.total);
+    if (o.mode === "courier") {
+      if (cs.offer) setW("cbar", (cs.offer.exp - now) / 20000);
+      if (cs.trip) { setT("ceta", mins(rem(MC), MC.kmh)); if (cs.trip.stage === "toClient") setW("cprog", 1 - rem(MC) / cs.trip.total); }
+    }
+  } else if (t === "yuk") {
+    const o = S.yuk;
+    if (o.car && (o.stage === "coming" || o.stage === "ride")) setT("eta", mins(rem(o.car), o.car.kmh));
+    if (o.stage === "ride") setW("prog", 1 - rem(o.car) / o.total);
+  } else if (t === "bus") {
+    const R = ROUTES[S.bus.r], ds = busD(R, S.bus.stop[S.bus.r]);
+    const big = document.getElementById("mEta");
+    if (big) { const h = ds[0] < 14 ? `hozir<small>bekatda turibdi</small>` : `${busMin(ds[0])}<small>daqiqada keladi</small>`; if (big.innerHTML !== h) big.innerHTML = h; }
+    setT("mEta2", `${busMin(ds[1])} daqiqadan keyin`);
+    document.querySelectorAll("[data-m]").forEach(e => { const x = busD(R, +e.dataset.m)[0]; const s = x < 14 ? "bekatda" : `${busMin(x)} daq`; if (e.textContent !== s) e.textContent = s; });
+  } else if (t === "drv") {
+    if (dd.offer) setW("obar", (dd.offer.exp - now) / 15000);
+    if (dd.trip) { setT("reta", mins(rem(ME), 27)); if (dd.trip.stage === "ride") setW("rprog", 1 - rem(ME) / dd.trip.total); }
+  }
+}
+const rerenderIf = tab => { if (S.tab === tab) render(); };
+
+/* ================= Taksi oqimi ================= */
+function callTaxi() {
+  const o = S.taxi, t = TAXI_T.find(x => x.id === o.tariff);
+  o.price = taxiPrice(t, pdist(USER, o.to));
+  o.stage = "search"; o.rating = 0; o.showPhone = false;
+  const tok = ++o.tok; render();
+  setTimeout(() => {
+    if (o.tok !== tok) return;
+    const c = nearestFree(taxis, USER);
+    if (!c) { o.stage = "select"; rerenderIf("taxi"); toast("Hozir bo‘sh taksi yo‘q, birozdan keyin urinib ko‘ring"); return; }
+    c.free = false; o.car = c; o.stage = "coming"; o.total = distTo(c, USER);
+    rerenderIf("taxi"); toast(`${c.name} buyurtmangizni qabul qildi`);
+    driveTo(c, USER, () => { if (o.tok !== tok) return; o.stage = "arrived"; rerenderIf("taxi"); toast("Haydovchi yetib keldi"); });
+  }, 2200);
+}
+function sit() {
+  const o = S.taxi, tok = o.tok;
+  o.stage = "ride"; o.total = pdist(USER, o.to) || 1; render();
+  driveTo(o.car, o.to, () => { if (o.tok !== tok) return; o.stage = "done"; release(o.car); rerenderIf("taxi"); toast(`${NAMES[o.to]} · yetib keldingiz`); });
+}
+function cancelTaxi() {
+  const o = S.taxi; o.tok++;
+  if (o.car) { release(o.car); o.car = null; }
+  o.stage = "select"; render(); toast("Buyurtma bekor qilindi");
+}
+
+/* ================= Yetkazish oqimi (mijoz) ================= */
+function startDelivery(ord) {
+  const o = S.del;
+  o.ord = ord; o.code = String(1000 + rnd(9000)); o.stage = "search"; o.showPhone = false; o.rating = 0;
+  const tok = ++o.tok; render();
+  setTimeout(() => {
+    if (o.tok !== tok) return;
+    const c = nearestFree(couriers, ord.from, x => x.type === ord.transport) || nearestFree(couriers, ord.from, x => km(pdist(ord.from, ord.to)) <= CT[x.type].max);
+    if (!c) { o.stage = "browse"; o.ord = null; rerenderIf("del"); toast("Hozir bo‘sh kuryer yo‘q"); return; }
+    c.free = false; o.car = c; o.stage = "pickup"; o.total = distTo(c, ord.from);
+    rerenderIf("del"); toast(`Kuryer ${c.name} yo‘lga chiqdi`);
+    driveTo(c, ord.from, () => {
+      if (o.tok !== tok) return;
+      o.stage = "prep"; rerenderIf("del");
+      setTimeout(() => {
+        if (o.tok !== tok) return;
+        o.stage = "way"; o.total = pdist(ord.from, ord.to) || 1; rerenderIf("del");
+        driveTo(c, ord.to, () => { if (o.tok !== tok) return; o.stage = "done"; release(c); o.cart = {}; rerenderIf("del"); toast(ord.store ? "Buyurtma yetkazildi. Yoqimli ishtaha!" : "Jo‘natma topshirildi"); });
+      }, ord.store ? 3000 : 1800);
+    });
+  }, 2000);
+}
+function orderFromStore() {
+  const o = S.del, s = STORES[o.store], u = pdist(s.node, USER), fee = courFee(CT[o.transport], u), goods = cartSum(o);
+  const items = cartList(o).map(x => `${x.it[0]} × ${x.q}`).join(", ");
+  startDelivery({ from: s.node, to: USER, store: s.name, items, goods, fee, total: goods + fee, transport: o.transport, title: `${s.name} → ${NAMES[USER]}` });
+}
+function orderParcel() {
+  const o = S.del, fee = courFee(CT[o.transport], pdist(o.from, o.to));
+  startDelivery({ from: o.from, to: o.to, store: null, items: ITEMS[o.item].n, goods: 0, fee, total: fee, transport: o.transport, title: `${NAMES[o.from]} → ${NAMES[o.to]}` });
+}
+function cancelDel() {
+  const o = S.del; o.tok++;
+  if (o.car) { release(o.car); o.car = null; }
+  const back = o.ord && o.ord.store ? "checkout" : "browse";
+  o.ord = null; o.stage = back; render(); toast("Buyurtma bekor qilindi");
+}
+
+/* ================= Kuryer ilovasi oqimi ================= */
+function scheduleCour() {
+  const cs = S.cour; clearTimeout(cs.timer);
+  if (!cs.online || cs.trip) return;
+  cs.timer = setTimeout(makeCourOffer, 3500);
+}
+function makeCourOffer() {
+  const cs = S.cour, t = CT[MC.type];
+  if (!cs.online || cs.trip || cs.offer) return;
+  const maxU = t.max / KM, pickMax = Math.min(maxU, 520);
+  let s, tries = 0;
+  const near = STORES.filter(x => distTo(MC, x.node) <= pickMax && distTo(MC, x.node) > 0);
+  const pool = near.length ? near : STORES;
+  s = pool[rnd(pool.length)];
+  let to; do { to = rnd(25); tries++; } while ((to === s.node || pdist(s.node, to) < 110 || pdist(s.node, to) > maxU) && tries < 80);
+  if (tries >= 80) { scheduleCour(); return; }
+  const n = 1 + rnd(3), picks = [];
+  for (let i = 0; i < n; i++) { const m = s.menu[rnd(s.menu.length)]; picks.push(`${m[0]} × ${1 + rnd(2)}`); }
+  const u = pdist(s.node, to);
+  cs.offer = { from: s.node, to, store: s.name, items: picks.join(", "), u, fee: courFee(t, u), pick: distTo(MC, s.node), exp: performance.now() + 20000, code: String(1000 + rnd(9000)) };
+  if (S.tab === "del" && S.del.mode === "courier") render(); else toast("Kuryer ilovasida yangi buyurtma bor");
+}
+function courAccept() {
+  const cs = S.cour, f = cs.offer; if (!f) return;
+  cs.offer = null; cs.err = "";
+  cs.trip = Object.assign({}, f, { stage: "toStore", total: f.pick || 1 });
+  render();
+  driveTo(MC, f.from, () => { cs.trip.stage = "atStore"; if (S.tab === "del") render(); toast("Do‘konga yetib keldingiz"); });
+}
+function courGot() {
+  const cs = S.cour, j = cs.trip; if (!j) return;
+  j.stage = "toClient"; j.total = j.u || 1; render();
+  driveTo(MC, j.to, () => { j.stage = "atClient"; if (S.tab === "del") render(); toast("Mijozga yetib keldingiz"); });
+}
+function courDone() {
+  const cs = S.cour, j = cs.trip; if (!j) return;
+  const inp = document.getElementById("cCode"), v = inp ? inp.value.trim() : "";
+  if (v !== j.code) { cs.err = v ? "Kod noto‘g‘ri. Mijozdan qayta so‘rang." : "Avval mijoz aytgan kodni kiriting."; render(); return; }
+  const f10 = Math.round(j.fee * .1), tax = Math.round(j.fee * .01), net = j.fee - f10 - tax;
+  cs.earn += net; cs.trips++; cs.last = { where: `${j.store} → ${NAMES[j.to]}`, fee: j.fee, f10, tax, net };
+  cs.trip = null; cs.err = "";
+  MC.speed = MC.cruise; MC.stopped = false; MC.to = wander(MC); MC.t = 0;
+  render(); toast(`Topshirildi: +${fmt(net)}`);
+  scheduleCour();
+}
+function courToggle() {
+  const cs = S.cour;
+  if (cs.trip) return;
+  if (!cs.online) { cs.online = true; MC.stopped = false; MC.speed = MC.cruise; if (MC.from === MC.to) { MC.to = wander(MC); MC.t = 0; } toast("Siz ishdasiz. Buyurtmalar kela boshlaydi"); scheduleCour(); }
+  else { cs.online = false; cs.offer = null; clearTimeout(cs.timer); MC.stopped = true; }
+  render();
+}
+function courType(id) {
+  MC.type = id; MC.kmh = CT[id].kmh; MC.cruise = simSp(MC.kmh); MC.speed = MC.cruise; render();
+}
+
+/* ================= Yuk oqimi ================= */
+function callCargo() {
+  const o = S.yuk, t = GT[o.veh];
+  o.price = cargoPrice(t, pdist(o.from, o.to), o.helpers);
+  o.stage = "search"; o.rating = 0; o.showPhone = false;
+  const tok = ++o.tok; render();
+  setTimeout(() => {
+    if (o.tok !== tok) return;
+    const c = nearestFree(cargos, o.from, x => x.type === o.veh);
+    if (!c) { o.stage = "form"; rerenderIf("yuk"); toast(`Hozir bo‘sh ${t.name} yo‘q`); return; }
+    c.free = false; o.car = c; o.stage = "coming"; o.total = distTo(c, o.from);
+    rerenderIf("yuk"); toast(`${c.name} buyurtmani qabul qildi`);
+    driveTo(c, o.from, () => { if (o.tok !== tok) return; o.stage = "loading"; rerenderIf("yuk"); toast(`${t.name} yetib keldi`); });
+  }, 2200);
+}
+function cargoGo() {
+  const o = S.yuk, tok = o.tok;
+  o.stage = "ride"; o.total = pdist(o.from, o.to) || 1; render();
+  driveTo(o.car, o.to, () => { if (o.tok !== tok) return; o.stage = "done"; release(o.car); rerenderIf("yuk"); toast("Yuk yetkazildi"); });
+}
+function cancelCargo() {
+  const o = S.yuk; o.tok++;
+  if (o.car) { release(o.car); o.car = null; }
+  o.stage = "form"; render(); toast("Buyurtma bekor qilindi");
+}
+
+/* ================= Haydovchi oqimi ================= */
+function scheduleOffer() {
+  const dd = S.drv; clearTimeout(dd.timer);
+  if (!dd.online || dd.trip) return;
+  dd.timer = setTimeout(makeOffer, 3500);
+}
+function makeOffer() {
+  const dd = S.drv;
+  if (!dd.online || dd.trip || dd.offer) return;
+  let from, to, tries = 0;
+  do { from = rnd(25); } while ((from === ME.from || from === ME.to || distTo(ME, from) < 120 || distTo(ME, from) > 520) && tries++ < 60);
+  tries = 0;
+  do { to = rnd(25); } while ((to === from || pdist(from, to) < 260) && tries++ < 60);
+  const u = pdist(from, to);
+  dd.offer = { from, to, u, price: taxiPrice(TAXI_T[0], u), pick: distTo(ME, from), exp: performance.now() + 15000 };
+  if (S.tab === "drv") render(); else toast("Haydovchi ilovasida yangi buyurtma bor");
+}
+function accept() {
+  const dd = S.drv, f = dd.offer; if (!f) return;
+  dd.offer = null;
+  dd.trip = { stage: "pickup", from: f.from, to: f.to, price: f.price, total: f.pick || 1 };
+  render();
+  driveTo(ME, f.from, () => {
+    dd.trip.stage = "wait"; rerenderIf("drv");
+    setTimeout(() => { dd.trip.stage = "ride"; dd.trip.total = f.u || 1; rerenderIf("drv"); driveTo(ME, f.to, finishTrip); }, 2200);
+  });
+}
+function finishTrip() {
+  const dd = S.drv, t = dd.trip;
+  const fee = Math.round(t.price * 0.10), tax = Math.round(t.price * 0.01), net = t.price - fee - tax;
+  dd.earn += net; dd.trips += 1; dd.last = { from: t.from, to: t.to, price: t.price, fee, tax, net };
+  dd.trip = null; ME.speed = ME.cruise;
+  if (dd.online) { ME.stopped = false; ME.to = wander(ME); ME.t = 0; }
+  rerenderIf("drv"); toast(`Safar yakunlandi: +${fmt(net)}`);
+  scheduleOffer();
+}
+function toggleOnline() {
+  const dd = S.drv;
+  if (dd.trip) return;
+  if (!dd.online) { dd.online = true; ME.stopped = false; ME.speed = ME.cruise; if (ME.from === ME.to) { ME.to = wander(ME); ME.t = 0; } toast("Siz ishdasiz. Buyurtmalar kela boshlaydi"); scheduleOffer(); }
+  else { dd.online = false; dd.offer = null; clearTimeout(dd.timer); ME.stopped = true; }
+  render();
+}
+
+/* ================= Hodisalar ================= */
+sheet.addEventListener("click", e => {
+  const b = e.target.closest("[data-act]"); if (!b || b.disabled) return;
+  const a = b.dataset.act, o = S.taxi, q = S.del, y = S.yuk;
+  const ratingTarget = S.tab === "taxi" ? o : S.tab === "yuk" ? y : q;
+  switch (a) {
+    case "dest": o.to = +b.dataset.n; render(); break;
+    case "tariff": o.tariff = b.dataset.id; render(); break;
+    case "call": callTaxi(); break;
+    case "cancel": cancelTaxi(); break;
+    case "phone": o.showPhone = !o.showPhone; render(); break;
+    case "sit": sit(); break;
+    case "pay": o.pay = b.dataset.v; render(); break;
+    case "star": ratingTarget.rating = +b.dataset.v; render(); break;
+    case "newTaxi": o.stage = "select"; o.to = null; o.car = null; render(); break;
+    // yetkazish: mijoz
+    case "dmode": q.mode = b.dataset.v; render(); break;
+    case "kind": q.kind = b.dataset.v; q.store = null; render(); break;
+    case "store": {
+      const id = +b.dataset.v;
+      if (q.store !== id && cartQty(q)) toast("Savat yangi do‘kon uchun tozalandi");
+      if (q.store !== id) q.cart = {};
+      q.store = id; q.stage = "store"; render(); break;
+    }
+    case "inc": q.cart[+b.dataset.v] = (q.cart[+b.dataset.v] || 0) + 1; render(); break;
+    case "dec": q.cart[+b.dataset.v] = Math.max(0, (q.cart[+b.dataset.v] || 0) - 1); render(); break;
+    case "toBrowse": q.stage = "browse"; render(); break;
+    case "toStore": q.stage = "store"; render(); break;
+    case "checkout": q.stage = "checkout"; render(); break;
+    case "transport": q.transport = b.dataset.id; render(); break;
+    case "dpay": q.pay = b.dataset.v; render(); break;
+    case "orderGo": orderFromStore(); break;
+    case "item": q.item = +b.dataset.v; render(); break;
+    case "parcelGo": orderParcel(); break;
+    case "delCancel": cancelDel(); break;
+    case "dphone": q.showPhone = !q.showPhone; render(); break;
+    case "delNew": q.stage = "browse"; q.ord = null; q.car = null; q.to = null; render(); break;
+    // kuryer ilovasi
+    case "cToggle": courToggle(); break;
+    case "cType": courType(b.dataset.v); break;
+    case "cAccept": courAccept(); break;
+    case "cSkip": S.cour.offer = null; render(); scheduleCour(); break;
+    case "cGot": courGot(); break;
+    case "cDone": courDone(); break;
+    // yuk
+    case "veh": y.veh = b.dataset.id; render(); break;
+    case "hInc": y.helpers = Math.min(4, y.helpers + 1); render(); break;
+    case "hDec": y.helpers = Math.max(0, y.helpers - 1); render(); break;
+    case "yGo": callCargo(); break;
+    case "yCancel": cancelCargo(); break;
+    case "yPhone": y.showPhone = !y.showPhone; render(); break;
+    case "yLoaded": cargoGo(); break;
+    case "yNew": y.stage = "form"; y.to = null; y.car = null; y.helpers = 0; render(); break;
+    // marshrut
+    case "route": S.bus.r = +b.dataset.v; render(); break;
+    case "stop": S.bus.stop[S.bus.r] = +b.dataset.n; render(); break;
+    // haydovchi
+    case "toggle": toggleOnline(); break;
+    case "accept": accept(); break;
+    case "skip": S.drv.offer = null; render(); scheduleOffer(); break;
+  }
+});
+sheet.addEventListener("change", e => {
+  const t = e.target;
+  if (t.id === "dFrom") { S.del.from = +t.value; render(); }
+  if (t.id === "dTo") { S.del.to = +t.value; render(); }
+  if (t.id === "yFrom") { S.yuk.from = +t.value; render(); }
+  if (t.id === "yTo") { S.yuk.to = +t.value; render(); }
+});
+sheet.addEventListener("input", e => { if (e.target.id === "dPhone") S.del.phone = e.target.value; });
+sheet.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.id === "cCode") courDone(); });
+document.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => {
+  S.tab = b.dataset.tab; try { localStorage.setItem("yoldosh-tab", S.tab); } catch (e) {}
+  render();
+}));
+cv.addEventListener("click", e => {
+  const r = cv.getBoundingClientRect();
+  const vx = (e.clientX - r.left - OX) / SC + VX, vy = (e.clientY - r.top - OY) / SC + VY;
+  const t = S.tab, q = S.del;
+  let pool = NODES.map((_, i) => i);
+  if (t === "bus") pool = ROUTES[S.bus.r].stops;
+  if (t === "del" && q.mode === "client" && q.stage === "browse" && q.kind !== "parcel") pool = STORES.filter(s => s.kind === q.kind).map(s => s.node);
+  let best = -1, bd = Infinity;
+  for (const n of pool) { const x = Math.hypot(NODES[n].x - vx, NODES[n].y - vy); if (x < bd) { bd = x; best = n; } }
+  if (best < 0 || bd > 90) return;
+  if (t === "taxi" && S.taxi.stage === "select") {
+    if (best === USER) { toast("Siz shu yerdasiz, boshqa manzil tanlang"); return; }
+    S.taxi.to = best; render();
+  } else if (t === "del" && q.mode === "client" && q.stage === "browse") {
+    if (q.kind === "parcel") { if (best === q.from) { toast("Bu jo‘natma olinadigan joy"); return; } q.to = best; render(); }
+    else { const s = STORES.find(x => x.kind === q.kind && x.node === best); if (s) { if (q.store !== s.id) q.cart = {}; q.store = s.id; q.stage = "store"; render(); } }
+  } else if (t === "yuk" && S.yuk.stage === "form") {
+    if (best === S.yuk.from) { toast("Bu yuk olinadigan joy"); return; }
+    S.yuk.to = best; render();
+  } else if (t === "bus") { S.bus.stop[S.bus.r] = best; render(); }
+});
+
+/* ================= Ishga tushirish ================= */
+readTok();
+new ResizeObserver(resize).observe(wrap);
+const themeRefresh = () => { readTok(); buildStatic(); };
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", themeRefresh);
+new MutationObserver(themeRefresh).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "class"] });
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (CW) buildStatic(); });
+resize();
+render();
+setInterval(live, 250);
+requestAnimationFrame(t => { last = t; frame(t); });
+})();
+</script>
+
+<script>if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(()=>{});}</script>
+</body>
+</html>

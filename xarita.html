@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Yo‘ldosh Taksi</title>
+<meta name="theme-color" content="#1C6FE8">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@600;700&display=swap">
+<style>
+/* Layout: one-screen phone app. Real OpenStreetMap on top, bottom sheet for the order, district switcher in the header. */
+:root{
+  --bg:#E7ECF2; --surface:#FFFFFF; --surface-2:#F1F4F8; --ink:#0F1B2D; --muted:#5A6779; --line:#DAE1EA;
+  --accent:#1C6FE8; --accent-ink:#FFFFFF; --accent-soft:#E2EDFD; --accent-deep:#0B4FB8;
+  --go:#18885A; --danger:#C23B3B; --shadow:rgba(15,27,45,.16);
+  --plate-bg:#FFFFFF; --plate-ink:#111111; --flag-b:#1EB3E3; --flag-g:#1EA35A; --flag-r:#CE1126;
+  --font-display:"Unbounded","Onest",system-ui,sans-serif;
+  --font-body:"Onest",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0B111A; --surface:#121A26; --surface-2:#1A2432; --ink:#E6EDF6; --muted:#93A1B4; --line:#263244;
+    --accent:#3D8BFA; --accent-ink:#FFFFFF; --accent-soft:#16294A; --accent-deep:#8FBAFF;
+    --go:#34B07A; --danger:#E46A6A; --shadow:rgba(0,0,0,.5); --plate-bg:#ECEEE9;
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.4;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+[hidden]{display:none!important}
+
+.app{height:100%;max-width:480px;margin:0 auto;display:flex;flex-direction:column;background:var(--surface);border-inline:1px solid var(--line);overflow:hidden;position:relative;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.top{display:flex;flex-direction:column;gap:8px;padding:9px max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px));border-bottom:1px solid var(--line);background:var(--surface);z-index:500}
+.top-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.logo{display:flex;align-items:center;gap:9px;font-family:var(--font-display);font-weight:700;font-size:17px}
+.logo-mark{width:28px;height:28px;border-radius:9px;background:var(--accent);display:grid;place-items:center;color:var(--accent-ink)}
+.logo small{display:block;font-family:var(--font-body);font-weight:500;font-size:11px;color:var(--muted)}
+.hbtn{border:0;border-radius:999px;padding:7px 12px;background:var(--accent-soft);color:var(--accent-deep);font-size:13px;font-weight:700}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);padding:3px;border-radius:12px;background:var(--surface-2);gap:3px}
+.seg button{border:0;border-radius:9px;padding:7px 4px;background:none;font-size:13.5px;font-weight:600;color:var(--muted)}
+.seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 4px var(--shadow)}
+
+.map-wrap{flex:1 1 auto;min-height:220px;position:relative}
+#map{position:absolute;inset:0;background:#e5e3df}
+.badge{position:absolute;z-index:450;top:10px;left:12px;display:flex;align-items:center;gap:7px;padding:6px 11px;border-radius:999px;background:var(--surface);box-shadow:0 2px 10px var(--shadow);font-size:12px;font-weight:600;max-width:calc(100% - 80px)}
+.live-dot{width:8px;height:8px;flex:0 0 8px;border-radius:50%;background:var(--go)}
+.locbtn{position:absolute;z-index:450;right:12px;bottom:32px;width:44px;height:44px;border-radius:50%;border:0;background:var(--surface);box-shadow:0 2px 10px var(--shadow);display:grid;place-items:center;color:var(--accent-deep)}
+.locbtn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.toast{position:absolute;z-index:460;top:50px;left:50%;transform:translate(-50%,-8px);opacity:0;pointer-events:none;background:var(--ink);color:var(--surface);font-size:13px;font-weight:600;padding:8px 14px;border-radius:12px;max-width:calc(100% - 32px);text-align:center;transition:opacity .25s,transform .25s}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+.sheet{flex:0 0 auto;max-height:58%;overflow-y:auto;background:var(--surface);border-radius:22px 22px 0 0;margin-top:-20px;position:relative;z-index:500;box-shadow:0 -6px 22px var(--shadow)}
+.grip{width:38px;height:4px;border-radius:2px;background:var(--line);margin:8px auto 0}
+.sheet-in{display:flex;flex-direction:column;gap:12px;padding:10px max(16px,env(safe-area-inset-right,0px)) 16px max(16px,env(safe-area-inset-left,0px))}
+h2{font-family:var(--font-display);font-weight:600;font-size:18.5px;line-height:1.2;margin:0}
+.status{display:flex;flex-direction:column;gap:4px}
+.status.center{align-items:center;text-align:center}
+.status p,.hint{margin:0;color:var(--muted);font-size:13.5px}
+.num{font-variant-numeric:tabular-nums;font-weight:700;color:var(--ink)}
+.trip{border:1px solid var(--line);border-radius:16px}
+.pt{display:flex;align-items:center;gap:12px;padding:11px 14px;min-width:0}
+.pt + .pt{border-top:1px solid var(--line)}
+.pt > div{flex:1;min-width:0}
+.pt small{display:block;font-size:11.5px;color:var(--muted)}
+.pt b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pt b.ph{color:var(--muted);font-weight:500}
+.mk{width:24px;height:24px;flex:0 0 24px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700}
+.mk.a{background:var(--ink);color:var(--surface)}
+.mk.b{background:var(--accent);color:var(--accent-ink)}
+.dist{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;padding:8px 13px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-size:13px;font-weight:500;white-space:nowrap}
+.chip small{color:var(--muted);margin-left:4px}
+.chip.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.tariffs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.tariff{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:10px;border-radius:14px;border:1.5px solid var(--line);background:var(--surface);min-width:0}
+.tariff.on{border-color:var(--accent);background:var(--accent-soft)}
+.tn{font-size:13px;font-weight:600}
+.tp{font-family:var(--font-display);font-weight:600;font-size:13.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tm{font-size:11px;color:var(--muted);line-height:1.3}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:52px;padding:0 16px;border:0;border-radius:14px;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:15.5px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.ghost{background:var(--surface-2);color:var(--ink);font-weight:600}
+.btn.ghost.danger{color:var(--danger)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.dcard{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--line);border-radius:16px;flex-wrap:wrap}
+.ava{width:46px;height:46px;flex:0 0 46px;border-radius:50%;background:var(--accent-soft);color:var(--accent-deep);display:grid;place-items:center;font-family:var(--font-display);font-weight:600;font-size:14px}
+.dinfo{flex:1;min-width:120px;display:flex;flex-direction:column}
+.dinfo span{font-size:13px;color:var(--muted)}
+.dinfo .tel{color:var(--ink);font-weight:600;user-select:all}
+.plate{display:inline-flex;align-items:stretch;border:1.5px solid var(--plate-ink);border-radius:5px;background:var(--plate-bg);color:var(--plate-ink);font-weight:700;font-size:13px;line-height:1;white-space:nowrap}
+.plate .reg{padding:5px;border-right:1.5px solid var(--plate-ink)}
+.plate .pn{padding:5px 6px}
+.plate .uz{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:2px 4px;font-size:7px}
+.plate .uz i{display:block;width:12px;height:8px;background:linear-gradient(var(--flag-b) 0 32%,var(--flag-r) 32% 36%,var(--plate-bg) 36% 64%,var(--flag-r) 64% 68%,var(--flag-g) 68%)}
+.sum{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:14px;color:var(--muted)}
+.sum b{font-family:var(--font-display);font-weight:600;font-size:16px;color:var(--ink);white-space:nowrap}
+.prog{height:6px;border-radius:3px;background:var(--surface-2);overflow:hidden}
+.prog i{display:block;height:100%;width:0;background:var(--accent);transition:width .35s linear}
+.radar{position:relative;width:88px;height:88px;display:grid;place-items:center;margin:4px auto}
+.radar i{position:absolute;inset:0;border-radius:50%;border:2px solid var(--accent);animation:ring 2s ease-out infinite;opacity:0}
+.radar i + i{animation-delay:1s}
+@keyframes ring{0%{transform:scale(.35);opacity:.9}100%{transform:scale(1);opacity:0}}
+.radar span{width:46px;height:46px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:700}
+.big-price{font-family:var(--font-display);font-weight:700;font-size:30px}
+.stars{display:flex;gap:6px;justify-content:center}
+.star{border:0;background:none;font-size:30px;line-height:1;color:var(--line);padding:2px}
+.star.on{color:var(--accent)}
+.modal{position:absolute;inset:0;z-index:900;background:var(--surface);overflow-y:auto;padding:0 16px 24px}
+.mhead{position:sticky;top:0;background:var(--surface);display:flex;justify-content:space-between;align-items:center;padding:14px 0 10px;border-bottom:1px solid var(--line)}
+.x{width:36px;height:36px;border:0;border-radius:50%;background:var(--surface-2);font-size:20px}
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:14px}
+th{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:right;padding:9px 8px;background:var(--surface-2)}
+td{padding:9px 8px;border-top:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
+th:first-child,td:first-child{text-align:left}
+
+/* xarita belgilari */
+.car-ic{background:none;border:0}
+.car{width:26px;height:26px;display:grid;place-items:center;transition:transform .2s linear}
+.car svg{width:16px;height:26px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
+.car.mine svg{width:20px;height:32px}
+.pin-ic{background:none;border:0}
+.pin{width:30px;height:40px;position:relative}
+.pin b{position:absolute;left:3px;top:0;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font:700 12px var(--font-body);border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+.pin::after{content:"";position:absolute;left:11px;top:22px;border:4px solid transparent;border-top:9px solid var(--c)}
+.pin.a{--c:#0F1B2D}.pin.a b{background:#0F1B2D;color:#fff}
+.pin.b{--c:#1C6FE8}.pin.b b{background:#1C6FE8;color:#fff}
+.me-dot{width:18px;height:18px;border-radius:50%;background:#1C6FE8;border:3px solid #fff;box-shadow:0 0 0 6px rgba(28,111,232,.25)}
+@media (prefers-reduced-motion: reduce){.radar i{animation:none;opacity:.5}.car,.toast,.prog i{transition:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="top-row">
+      <div class="logo"><span class="logo-mark" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.4"/></svg></span><div>Yo‘ldosh<small>Qashqadaryo · sinov versiyasi</small></div></div>
+      <span style="display:flex;gap:6px"><a class="hbtn" href="index.html" style="text-decoration:none">Barcha xizmatlar</a><button class="hbtn" id="pricesBtn">Narxlar</button></span>
+    </div>
+    <div class="seg" id="districts" role="tablist" aria-label="Tuman"></div>
+  </header>
+  <div class="map-wrap">
+    <div id="map" aria-label="Xarita"></div>
+    <div class="badge"><span class="live-dot"></span><span id="badgeTxt">Xarita yuklanmoqda…</span></div>
+    <button class="locbtn" id="locBtn" aria-label="Joyimni aniqlash"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </div>
+  <section class="sheet" id="sheet" aria-live="polite"></section>
+  <div class="modal" id="prices" hidden role="dialog" aria-modal="true"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+(() => {
+"use strict";
+/* ---------- Tumanlar ---------- */
+const DISTRICTS = {
+  shahrisabz: { name: "Shahrisabz", c: [39.0500, 66.8330], z: 14 },
+  kitob:      { name: "Kitob",      c: [39.1336, 66.8819], z: 14 },
+  yakkabog:   { name: "Yakkabog‘",  c: [38.9800, 66.6800], z: 15 }
+};
+const TAXI_T = [
+  { id: "eko", name: "Ekonom", cars: "Cobalt, Nexia", base: 7000, perKm: 1500, min: 8000 },
+  { id: "kom", name: "Komfort", cars: "Gentra, Malibu", base: 9000, perKm: 2000, min: 11000 },
+  { id: "min", name: "Miniven", cars: "6 o‘rindiqli", base: 12000, perKm: 2500, min: 15000 }
+];
+const DRIVERS = [
+  ["Aziz Rahimov","Cobalt","oq","70 A 125 KA",4.9,"+998 90 512 34 18"],
+  ["Dilshod Tursunov","Nexia 3","kumush","70 B 318 MA",4.8,"+998 91 207 66 41"],
+  ["Sherzod Aliyev","Gentra","qora","70 A 742 BC",4.95,"+998 93 470 12 05"],
+  ["Bekzod Qodirov","Cobalt","oq","70 C 509 DA",4.7,"+998 94 318 90 22"],
+  ["Ulug‘bek Sobirov","Lacetti","kulrang","70 A 066 RA",4.85,"+998 99 641 25 37"],
+  ["Otabek Yo‘ldoshev","Cobalt","ko‘k","70 B 884 KA",4.75,"+998 97 185 03 64"]
+];
+const KMH = 27;
+const round500 = n => Math.round(n / 500) * 500;
+const price = (t, m) => Math.max(t.min, round500(t.base + t.perKm * m / 1000));
+const fmt = n => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " so‘m";
+const etaMin = m => Math.max(1, Math.round(m / 1000 / KMH * 60));
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+/* ---------- Geo yordamchilar ---------- */
+const R_EARTH = 6371000, rad = x => x * Math.PI / 180;
+function hav(a, b) {
+  const dLat = rad(b[0] - a[0]), dLng = rad(b[1] - a[1]);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a[0])) * Math.cos(rad(b[0])) * Math.sin(dLng / 2) ** 2;
+  return 2 * R_EARTH * Math.asin(Math.sqrt(h));
+}
+function bearing(a, b) { return Math.atan2((b[1] - a[1]) * Math.cos(rad(a[0])), b[0] - a[0]) * 180 / Math.PI; }
+function offset(c, meters, angDeg) {
+  const dLat = meters * Math.cos(rad(angDeg)) / 111320, dLng = meters * Math.sin(rad(angDeg)) / (111320 * Math.cos(rad(c[0])));
+  return [c[0] + dLat, c[1] + dLng];
+}
+function mkRoute(pts) {
+  const cum = [0];
+  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + hav(pts[i - 1], pts[i]));
+  return { pts, cum, len: cum[cum.length - 1] };
+}
+function posAt(r, s) {
+  if (r.pts.length < 2) return { p: r.pts[0], ang: 0 };
+  let i = 1; while (i < r.pts.length - 1 && r.cum[i] < s) i++;
+  const a = r.pts[i - 1], b = r.pts[i], seg = r.cum[i] - r.cum[i - 1] || 1, k = Math.min(1, Math.max(0, (s - r.cum[i - 1]) / seg));
+  return { p: [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k], ang: bearing(a, b) };
+}
+
+/* ---------- Tashqi xizmatlar (navbat bilan, ehtiyotkorlik bilan) ---------- */
+let qp = Promise.resolve();
+function queued(fn) { const p = qp.then(() => new Promise(r => setTimeout(r, 350))).then(fn); qp = p.catch(() => {}); return p; }
+const OSRM = "https://router.project-osrm.org";
+async function osrmRoute(a, b) {
+  return queued(async () => {
+    try {
+      const r = await fetch(`${OSRM}/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=full&geometries=geojson`);
+      const j = await r.json();
+      if (!j.routes || !j.routes[0]) throw 0;
+      return mkRoute(j.routes[0].geometry.coordinates.map(c => [c[1], c[0]]));
+    } catch (e) {                              // yo'l xizmati javob bermasa, to'g'ri chiziq
+      const rt = mkRoute([a, b]); rt.len *= 1.3; rt.approx = true; return rt;
+    }
+  });
+}
+async function osrmNearest(p) {
+  return queued(async () => {
+    try { const r = await fetch(`${OSRM}/nearest/v1/driving/${p[1]},${p[0]}`); const j = await r.json(); const l = j.waypoints[0].location; return [l[1], l[0]]; }
+    catch (e) { return p; }
+  });
+}
+async function placeName(p) {
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${p[0]}&lon=${p[1]}&zoom=17&accept-language=uz`);
+    const j = await r.json(), a = j.address || {};
+    return j.name || a.road || a.neighbourhood || a.suburb || a.village || a.town || a.city || "Xaritada belgilangan joy";
+  } catch (e) { return "Xaritada belgilangan joy"; }
+}
+const KIND = { bus_station: "Avtovokzal", marketplace: "Bozor", hospital: "Shifoxona", townhall: "Hokimiyat", college: "Kollej", university: "Universitet", supermarket: "Supermarket", park: "Bog‘", historic: "Tarixiy joy" };
+const KIND_ORDER = ["bus_station", "marketplace", "hospital", "townhall", "historic", "park", "supermarket", "college", "university"];
+async function loadPlaces(c) {
+  const q = `[out:json][timeout:20];(nwr["amenity"~"^(marketplace|hospital|bus_station|townhall|college|university)$"](around:4500,${c[0]},${c[1]});nwr["shop"="supermarket"](around:4500,${c[0]},${c[1]});nwr["historic"~"^(monument|memorial|castle|ruins|building)$"]["name"](around:4500,${c[0]},${c[1]});nwr["leisure"="park"]["name"](around:4500,${c[0]},${c[1]}););out center 80;`;
+  try {
+    const r = await fetch("https://overpass-api.de/api/interpreter", { method: "POST", body: "data=" + encodeURIComponent(q), headers: { "Content-Type": "application/x-www-form-urlencoded" } });
+    const j = await r.json(), seen = new Set(), out = [];
+    for (const e of j.elements) {
+      const t = e.tags || {}, kind = t.amenity || (t.shop === "supermarket" ? "supermarket" : t.historic ? "historic" : t.leisure === "park" ? "park" : null);
+      if (!kind || !KIND[kind]) continue;
+      const lat = e.lat ?? (e.center && e.center.lat), lon = e.lon ?? (e.center && e.center.lon);
+      if (lat == null) continue;
+      const name = t["name:uz"] || t.name || KIND[kind];
+      const key = name.toLowerCase();
+      if (seen.has(key)) continue; seen.add(key);
+      out.push({ name, kind, p: [lat, lon] });
+    }
+    out.sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) || hav(c, a.p) - hav(c, b.p));
+    return out.slice(0, 12);
+  } catch (e) { return []; }
+}
+
+/* ---------- Xarita ---------- */
+const map = L.map("map", { zoomControl: false, attributionControl: true });
+L.control.zoom({ position: "topright" }).addTo(map);
+/* Xarita rasmlari: CARTO (OpenStreetMap asosida). Ishlamasa, avtomatik Esri'ga o'tadi. */
+const TILE_SOURCES = [
+  { url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png", opt: { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' } },
+  { url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", opt: { subdomains: "abcd", maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>' } },
+  { url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", opt: { maxZoom: 19, attribution: "Tiles &copy; Esri" } }
+];
+let tileIdx = 0, tileErr = 0, tileOk = 0, tiles = null;
+function useTiles(i) {
+  if (tiles) map.removeLayer(tiles);
+  tileIdx = i; tileErr = 0; tileOk = 0;
+  tiles = L.tileLayer(TILE_SOURCES[i].url, TILE_SOURCES[i].opt).addTo(map);
+  tiles.on("tileload", () => { tileOk++; });
+  tiles.on("tileerror", () => {
+    tileErr++;
+    if (tileErr > 6 && tileOk === 0) {
+      if (tileIdx + 1 < TILE_SOURCES.length) useTiles(tileIdx + 1);
+      else problem("Xarita rasmlari yuklanmadi. Internet ulanganini tekshiring.");
+    }
+  });
+}
+useTiles(0);
+const CAR_SVG = c => `<svg viewBox="0 0 16 26"><rect x="1" y="1" width="14" height="24" rx="5" fill="${c}" stroke="#fff" stroke-width="1.5"/><rect x="3.5" y="6" width="9" height="5" rx="1.5" fill="rgba(0,0,0,.4)"/><rect x="3.5" y="17" width="9" height="4" rx="1.2" fill="rgba(0,0,0,.25)"/></svg>`;
+const carIcon = mine => L.divIcon({ className: "car-ic", html: `<div class="car${mine ? " mine" : ""}">${CAR_SVG(mine ? "#0F1B2D" : "#1C6FE8")}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] });
+const pinIcon = t => L.divIcon({ className: "pin-ic", html: `<div class="pin ${t.toLowerCase()}"><b>${t}</b></div>`, iconSize: [30, 40], iconAnchor: [15, 38] });
+const meIcon = L.divIcon({ className: "pin-ic", html: `<div class="me-dot"></div>`, iconSize: [18, 18], iconAnchor: [9, 9] });
+
+/* ---------- Holat ---------- */
+const S = { dk: "shahrisabz", A: null, Aname: "", gps: null, B: null, Bname: "", plan: null, tariff: "eko",
+  stage: "select", car: null, price: 0, tok: 0, showPhone: false, rating: 0, places: [] };
+let markA = null, markB = null, markMe = null, planLine = null, liveLine = null;
+let cars = [];
+try { const d = localStorage.getItem("yoldosh-dk"); if (DISTRICTS[d]) S.dk = d; } catch (e) {}
+
+/* ---------- Soxta taksilar (haqiqiy ko'chalar bo'ylab yuradi) ---------- */
+function clearCars() { cars.forEach(c => map.removeLayer(c.m)); cars = []; }
+async function spawnCars() {
+  clearCars();
+  const c = DISTRICTS[S.dk].c, gen = S.dk;
+  for (let i = 0; i < DRIVERS.length; i++) {
+    const p = await osrmNearest(offset(c, 300 + Math.random() * 1400, Math.random() * 360));
+    if (S.dk !== gen) return;
+    const r = DRIVERS[i];
+    const car = { name: r[0], model: r[1], color: r[2], plate: r[3], rating: r[4], phone: r[5], pos: p, ang: 0, route: null, s: 0, speed: 10, free: true, onArrive: null, wait: 1 + Math.random() * 4 };
+    car.m = L.marker(p, { icon: carIcon(false), interactive: false, keyboard: false }).addTo(map);
+    cars.push(car);
+  }
+  badge();
+}
+async function wander(car) {
+  car.pending = true;
+  const dest = offset(DISTRICTS[S.dk].c, 200 + Math.random() * 1500, Math.random() * 360);
+  const r = await osrmRoute(car.pos, dest);
+  car.pending = false;
+  if (!car.free || car.route || !cars.includes(car)) return;
+  if (r.approx) { car.wait = 20; return; }   // yo'l xizmati ishlamasa, turgan joyida qoladi
+  car.route = r; car.s = 0; car.speed = 9 + Math.random() * 4;
+}
+function driveAlong(car, route, speed, cb) { car.route = route; car.s = 0; car.speed = speed; car.onArrive = cb; }
+function setCarIcon(car) {
+  car.m.setLatLng(car.pos);
+  const el = car.m.getElement(); if (el && el.firstChild) el.firstChild.style.transform = `rotate(${car.ang}deg)`;
+}
+let lastT = performance.now();
+function tick(now) {
+  const dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
+  for (const car of cars) {
+    if (car.route) {
+      car.s += car.speed * dt;
+      const at = posAt(car.route, Math.min(car.s, car.route.len));
+      car.pos = at.p; car.ang = at.ang;
+      if (car.s >= car.route.len) {
+        car.route = null;
+        const cb = car.onArrive; car.onArrive = null;
+        if (cb) cb(); else car.wait = 2 + Math.random() * 6;
+      }
+      setCarIcon(car);
+    } else if (car.free && !car.pending) {
+      car.wait -= dt; if (car.wait <= 0) wander(car);
+    }
+  }
+  if (S.car && S.car.route && liveLine) {
+    const r = S.car.route, i = r.cum.findIndex(x => x >= S.car.s);
+    liveLine.setLatLngs([S.car.pos, ...r.pts.slice(Math.max(1, i))]);
+  }
+  requestAnimationFrame(tick);
+}
+const remM = car => car.route ? Math.max(0, car.route.len - car.s) : 0;
+function nearestFree(p) { let best = null, bd = Infinity; for (const c of cars) if (c.free) { const x = hav(c.pos, p); if (x < bd) { bd = x; best = c; } } return best; }
+
+/* ---------- Nuqtalar ---------- */
+function setA(p, name) {
+  S.A = p; S.Aname = name || S.Aname;
+  if (!markA) markA = L.marker(p, { icon: pinIcon("A"), draggable: true, zIndexOffset: 900 }).addTo(map).on("dragend", e => { const ll = e.target.getLatLng(); setA([ll.lat, ll.lng], "…"); placeName(S.A).then(n => { S.Aname = n; render(); }); });
+  else markA.setLatLng(p);
+  replan();
+}
+function setB(p, name) {
+  S.B = p; S.Bname = name || "…";
+  if (!markB) markB = L.marker(p, { icon: pinIcon("B"), zIndexOffset: 900 }).addTo(map); else markB.setLatLng(p);
+  if (!name) placeName(p).then(n => { if (S.B === p) { S.Bname = n; render(); } });
+  replan();
+}
+async function replan() {
+  if (!S.A || !S.B) { render(); return; }
+  const a = S.A, b = S.B; S.plan = null; render();
+  const r = await osrmRoute(a, b);
+  if (S.A !== a || S.B !== b) return;
+  S.plan = r;
+  if (planLine) map.removeLayer(planLine);
+  planLine = L.polyline(r.pts, { color: "#0F1B2D", weight: 4, opacity: .75, dashArray: r.approx ? "6 8" : null }).addTo(map);
+  map.fitBounds(L.latLngBounds(r.pts).pad(0.25), { maxZoom: 16 });
+  render();
+}
+function clearTrip() {
+  [markB, planLine, liveLine].forEach(l => l && map.removeLayer(l));
+  markB = planLine = liveLine = null; S.B = null; S.plan = null;
+}
+
+/* ---------- Tuman almashtirish ---------- */
+function renderDistricts() {
+  document.getElementById("districts").innerHTML = Object.entries(DISTRICTS).map(([k, d]) => `<button role="tab" aria-selected="${k === S.dk}" class="${k === S.dk ? "on" : ""}" data-dk="${k}">${d.name}</button>`).join("");
+}
+async function goDistrict(k) {
+  if (S.stage !== "select" && S.stage !== "done") { toast("Avval joriy buyurtmani yakunlang yoki bekor qiling"); return; }
+  S.dk = k; try { localStorage.setItem("yoldosh-dk", k); } catch (e) {}
+  renderDistricts(); clearTrip(); S.stage = "select"; S.car = null;
+  const d = DISTRICTS[k];
+  map.setView(d.c, d.z);
+  const inside = S.gps && hav(S.gps, d.c) < 12000;
+  setA(inside ? S.gps : d.c, inside ? "Siz turgan joy" : `${d.name} markazi`);
+  S.places = []; render();
+  spawnCars();
+  S.places = await loadPlaces(d.c);
+  if (S.dk === k) render();
+}
+
+/* ---------- GPS ---------- */
+function locate(manual) {
+  if (!navigator.geolocation) { if (manual) toast("Bu qurilmada joylashuvni aniqlab bo‘lmadi"); return; }
+  navigator.geolocation.getCurrentPosition(pos => {
+    const p = [pos.coords.latitude, pos.coords.longitude];
+    S.gps = p;
+    if (!markMe) markMe = L.marker(p, { icon: meIcon, interactive: false }).addTo(map); else markMe.setLatLng(p);
+    const near = Object.entries(DISTRICTS).sort((a, b) => hav(p, a[1].c) - hav(p, b[1].c))[0];
+    if (hav(p, near[1].c) > 12000) { if (manual) toast("Siz xizmat hududidan tashqaridasiz. A nuqtani xaritada suring"); return; }
+    if (near[0] !== S.dk && S.stage === "select") { goDistrict(near[0]); return; }
+    if (S.stage === "select") { setA(p, "Siz turgan joy"); map.setView(p, 16); }
+  }, () => { if (manual) toast("Joylashuvga ruxsat berilmadi. A nuqtani xaritada suring"); }, { enableHighAccuracy: true, timeout: 10000 });
+}
+
+/* ---------- UI ---------- */
+const sheet = document.getElementById("sheet"), toastEl = document.getElementById("toast");
+let toastT; function toast(m) { toastEl.textContent = m; toastEl.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => toastEl.classList.remove("show"), 2600); }
+function badge() {
+  const free = cars.filter(c => c.free).length;
+  document.getElementById("badgeTxt").textContent = `${DISTRICTS[S.dk].name} · ${free} ta bo‘sh taksi (namuna)`;
+}
+const initials = n => n.split(" ").map(w => w[0]).join("").slice(0, 2);
+const plate = p => { const [reg, ...rest] = p.split(" "); return `<span class="plate"><span class="reg">${reg}</span><span class="pn">${rest.join(" ")}</span><span class="uz"><i></i>UZ</span></span>`; };
+const dcard = (c, phone) => `<div class="dcard"><div class="ava">${initials(c.name)}</div><div class="dinfo"><b>${esc(c.name)}</b><span>${c.model}, ${c.color} · ★ ${c.rating}</span>${phone ? `<span class="tel">${c.phone}</span>` : ""}</div>${plate(c.plate)}</div>`;
+
+function render() {
+  const t = TAXI_T.find(x => x.id === S.tariff);
+  let h = "";
+  if (S.stage === "select") {
+    const m = S.plan ? S.plan.len : 0, car = S.A && nearestFree(S.A);
+    const carEta = car ? `≈${etaMin(hav(car.pos, S.A) * 1.3)} daq. yetadi` : "…";
+    h = `
+      <div class="trip">
+        <div class="pt"><span class="mk a">A</span><div><small>Qayerdan · pin‘ni surib aniqlang</small><b>${esc(S.Aname || "…")}</b></div></div>
+        <div class="pt"><span class="mk b">B</span><div><small>Qayerga</small><b class="${S.B ? "" : "ph"}">${S.B ? esc(S.Bname) : "Xaritaga bosing yoki pastdan tanlang"}</b></div>${S.B ? `<span class="dist">${S.plan ? (m / 1000).toFixed(1) + " km" : "…"}</span>` : ""}</div>
+      </div>
+      <div class="chips">${S.places.length ? S.places.map((p, i) => `<button class="chip" data-act="place" data-i="${i}">${esc(p.name)}<small>${p.name === KIND[p.kind] ? "" : KIND[p.kind]}</small></button>`).join("") : `<span class="hint">Mashhur joylar yuklanmoqda…</span>`}</div>
+      ${S.plan && S.plan.approx ? `<p class="hint">Yo‘l xizmati javob bermadi, masofa taxminiy hisoblandi.</p>` : ""}
+      <div class="tariffs">${TAXI_T.map(x => `<button class="tariff ${S.tariff === x.id ? "on" : ""}" data-act="tariff" data-id="${x.id}"><span class="tn">${x.name}</span><span class="tp">${S.plan ? fmt(price(x, m)) : fmt(x.min) + "dan"}</span><span class="tm">${x.cars}<br>${carEta}</span></button>`).join("")}</div>
+      <button class="btn" data-act="call" ${S.plan ? "" : "disabled"}>Taksi chaqirish${S.plan ? " · " + fmt(price(t, m)) : ""}</button>`;
+  } else if (S.stage === "search") {
+    h = `<div class="status center"><div class="radar"><i></i><i></i><span>A</span></div><h2>Haydovchi qidirilmoqda</h2><p>Yaqin atrofdagi bo‘sh taksilarga so‘rov yuborildi</p></div>
+      <div class="sum"><span>${esc(S.Bname)} · ${t.name}</span><b>${fmt(S.price)}</b></div>
+      <button class="btn ghost danger" data-act="cancel">Bekor qilish</button>`;
+  } else if (S.stage === "coming") {
+    h = `<div class="status"><h2>Haydovchi yo‘lda</h2><p><span class="num" id="eta">…</span> daqiqada yetib keladi</p></div>${dcard(S.car, S.showPhone)}
+      <div class="row2"><button class="btn ghost" data-act="phone">${S.showPhone ? "Raqamni yashirish" : "Qo‘ng‘iroq"}</button><button class="btn ghost danger" data-act="cancel">Bekor qilish</button></div>
+      <div class="sum"><span>${esc(S.Bname)} · ${t.name}</span><b>${fmt(S.price)}</b></div>`;
+  } else if (S.stage === "arrived") {
+    h = `<div class="status"><h2>Haydovchi yetib keldi</h2><p>${S.car.color.charAt(0).toUpperCase() + S.car.color.slice(1)} ${S.car.model} sizni kutyapti</p></div>${dcard(S.car, S.showPhone)}<button class="btn" data-act="sit">Mashinaga o‘tirdim</button>`;
+  } else if (S.stage === "ride") {
+    h = `<div class="status"><h2>Yo‘ldasiz</h2><p>${esc(S.Bname)}gacha <span class="num" id="eta">…</span> daqiqa</p></div><div class="prog"><i id="prog"></i></div>${dcard(S.car, false)}<div class="sum"><span>Narx o‘zgarmaydi</span><b>${fmt(S.price)}</b></div>`;
+  } else {
+    h = `<div class="status center"><h2>Yetib keldingiz</h2><p>${esc(S.Bname)} · ${S.car.name}</p><span class="big-price">${fmt(S.price)}</span></div>
+      <div class="stars">${[1,2,3,4,5].map(i => `<button class="star ${S.rating >= i ? "on" : ""}" data-act="star" data-v="${i}" aria-label="${i} yulduz">★</button>`).join("")}</div>
+      <button class="btn" data-act="new">Yangi buyurtma</button>`;
+  }
+  sheet.innerHTML = `<div class="grip"></div><div class="sheet-in">${h}</div>`;
+  live();
+}
+function live() {
+  badge();
+  if (!S.car) return;
+  const e = document.getElementById("eta"); if (e) e.textContent = etaMin(remM(S.car));
+  const p = document.getElementById("prog"); if (p && S.plan) p.style.width = (100 * (1 - remM(S.car) / S.plan.len)).toFixed(1) + "%";
+}
+
+/* ---------- Buyurtma oqimi ---------- */
+async function call() {
+  const t = TAXI_T.find(x => x.id === S.tariff);
+  S.price = price(t, S.plan.len); S.stage = "search"; S.rating = 0; S.showPhone = false;
+  const tok = ++S.tok; render();
+  await new Promise(r => setTimeout(r, 1800));
+  if (S.tok !== tok) return;
+  const car = nearestFree(S.A);
+  if (!car) { S.stage = "select"; render(); toast("Hozir bo‘sh taksi yo‘q"); return; }
+  car.free = false; car.route = null; car.onArrive = null; S.car = car;
+  const r = await osrmRoute(car.pos, S.A);
+  if (S.tok !== tok) { car.free = true; return; }
+  S.stage = "coming"; render(); toast(`${car.name} buyurtmangizni qabul qildi`);
+  car.m.setIcon(carIcon(true)); setCarIcon(car);
+  if (liveLine) map.removeLayer(liveLine);
+  liveLine = L.polyline(r.pts, { color: "#1C6FE8", weight: 5 }).addTo(map);
+  driveAlong(car, r, 16, () => { if (S.tok !== tok) return; S.stage = "arrived"; render(); toast("Haydovchi yetib keldi"); });
+}
+function sit() {
+  const tok = S.tok; S.stage = "ride"; render();
+  if (planLine) { map.removeLayer(planLine); planLine = null; }
+  driveAlong(S.car, S.plan, 14, () => { if (S.tok !== tok) return; S.stage = "done"; freeCar(S.car); render(); toast("Yetib keldingiz"); });
+}
+function freeCar(c) { c.free = true; c.onArrive = null; c.wait = 3; c.m.setIcon(carIcon(false)); setCarIcon(c); if (liveLine) { map.removeLayer(liveLine); liveLine = null; } }
+function cancel() {
+  S.tok++;
+  if (S.car) { S.car.route = null; freeCar(S.car); S.car = null; }
+  S.stage = "select"; render(); toast("Buyurtma bekor qilindi");
+}
+
+sheet.addEventListener("click", e => {
+  const b = e.target.closest("[data-act]"); if (!b || b.disabled) return;
+  switch (b.dataset.act) {
+    case "place": { const p = S.places[+b.dataset.i]; setB(p.p, p.name); break; }
+    case "tariff": S.tariff = b.dataset.id; render(); break;
+    case "call": call(); break;
+    case "cancel": cancel(); break;
+    case "phone": S.showPhone = !S.showPhone; render(); break;
+    case "sit": sit(); break;
+    case "star": S.rating = +b.dataset.v; render(); break;
+    case "new": clearTrip(); S.car = null; S.stage = "select"; render(); break;
+  }
+});
+document.getElementById("districts").addEventListener("click", e => { const b = e.target.closest("[data-dk]"); if (b && b.dataset.dk !== S.dk) goDistrict(b.dataset.dk); });
+document.getElementById("locBtn").addEventListener("click", () => locate(true));
+map.on("click", e => { if (S.stage === "select") setB([e.latlng.lat, e.latlng.lng]); });
+
+const pricesEl = document.getElementById("prices");
+document.getElementById("pricesBtn").addEventListener("click", () => {
+  pricesEl.innerHTML = `<div class="mhead"><h2>Narxlar</h2><button class="x" data-close aria-label="Yopish">×</button></div>
+    <table><thead><tr><th>Tarif</th><th>Chiqish</th><th>1 km</th><th>Eng kam</th></tr></thead><tbody>
+    ${TAXI_T.map(t => `<tr><td><b>${t.name}</b><br><small>${t.cars}</small></td><td>${fmt(t.base)}</td><td>${fmt(t.perKm)}</td><td>${fmt(t.min)}</td></tr>`).join("")}</tbody></table>
+    <p class="hint" style="margin-top:12px">Narxlar so‘mda. Safar narxi buyurtmadan oldin ko‘rinadi va yo‘lda o‘zgarmaydi. Masofa haqiqiy yo‘l bo‘yicha hisoblanadi.</p>`;
+  pricesEl.hidden = false;
+});
+pricesEl.addEventListener("click", e => { if (e.target.closest("[data-close]")) pricesEl.hidden = true; });
+
+/* ---------- Ishga tushirish ---------- */
+renderDistricts();
+goDistrict(S.dk);
+locate(false);
+setInterval(live, 500);
+requestAnimationFrame(t => { lastT = t; tick(t); });
+})();
+</script>
+</body>
+</html>

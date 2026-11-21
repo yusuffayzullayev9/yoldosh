@@ -1,0 +1,17 @@
+{
+  "name": "Yo‘ldosh — taksi va yetkazib berish",
+  "short_name": "Yo‘ldosh",
+  "description": "Shahrisabz, Kitob va Yakkabog‘ uchun taksi, yetkazib berish va yuk tashish",
+  "lang": "uz",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFFFFF",
+  "theme_color": "#1C6FE8",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
