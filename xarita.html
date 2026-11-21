@@ -240,38 +240,27 @@ async function placeName(p) {
     return j.name || a.road || a.neighbourhood || a.suburb || a.village || a.town || a.city || "Xaritada belgilangan joy";
   } catch (e) { return "Xaritada belgilangan joy"; }
 }
-const KIND = { bus_station: "Avtovokzal", marketplace: "Bozor", hospital: "Shifoxona", townhall: "Hokimiyat", college: "Kollej", university: "Universitet", supermarket: "Supermarket", park: "Bog‘", historic: "Tarixiy joy" };
+const KIND = { bus_station: "Avtovokzal", marketplace: "Bozor", hospital: "Shifoxona", townhall: "Hokimiyat", college: "Kollej", university: "Universitet", supermarket: "Supermarket", park: "Bog‘", historic: "Tarixiy joy", school: "Maktab" };
 const KIND_ORDER = ["bus_station", "marketplace", "hospital", "townhall", "historic", "park", "supermarket", "college", "university"];
-const OVERPASS = ["https://overpass.kumi.systems/api/interpreter", "https://overpass-api.de/api/interpreter", "https://maps.mail.ru/osm/tools/overpass/api/interpreter"];
-function overpass(q) {
-  return Promise.any(OVERPASS.map(async u => {
-    const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 20000);
+const PLACE_CATS = [["marketplace","marketplace"],["hospital","hospital"],["bus station","bus_station"],["townhall","townhall"],["supermarket","supermarket"],["park","park"],["college","college"],["school","school"]];
+async function loadPlaces(c, onUpdate) {
+  const d = 0.045, vb = [c[1] - d, c[0] + d, c[1] + d, c[0] - d].join(","), seen = new Set(), out = [];
+  for (const [q, kind] of PLACE_CATS) {
     try {
-      const r = await fetch(u + "?data=" + encodeURIComponent(q), { signal: ctl.signal });
-      if (!r.ok) throw new Error("http");
+      const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 10000);
+      const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(q)}&viewbox=${vb}&bounded=1&limit=4&accept-language=uz`, { signal: ctl.signal });
+      clearTimeout(t);
       const j = await r.json();
-      if (!j || !Array.isArray(j.elements)) throw new Error("bad");
-      return j;
-    } finally { clearTimeout(t); }
-  }));
-}
-async function loadPlaces(c) {
-  const q = `[out:json][timeout:20];(nwr["amenity"~"^(marketplace|hospital|bus_station|townhall|college|university)$"](around:4500,${c[0]},${c[1]});nwr["shop"="supermarket"](around:4500,${c[0]},${c[1]});nwr["historic"~"^(monument|memorial|castle|ruins|building)$"]["name"](around:4500,${c[0]},${c[1]});nwr["leisure"="park"]["name"](around:4500,${c[0]},${c[1]}););out center 80;`;
-  try {
-    const j = await overpass(q), seen = new Set(), out = [];
-    for (const e of j.elements) {
-      const t = e.tags || {}, kind = t.amenity || (t.shop === "supermarket" ? "supermarket" : t.historic ? "historic" : t.leisure === "park" ? "park" : null);
-      if (!kind || !KIND[kind]) continue;
-      const lat = e.lat ?? (e.center && e.center.lat), lon = e.lon ?? (e.center && e.center.lon);
-      if (lat == null) continue;
-      const name = t["name:uz"] || t.name || KIND[kind];
-      const key = name.toLowerCase();
-      if (seen.has(key)) continue; seen.add(key);
-      out.push({ name, kind, p: [lat, lon] });
-    }
-    out.sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) || hav(c, a.p) - hav(c, b.p));
-    return out.slice(0, 12);
-  } catch (e) { return []; }
+      for (const e of j) {
+        const name = e.name || KIND[kind], key = name.toLowerCase();
+        if (seen.has(key)) continue; seen.add(key);
+        out.push({ name, kind, p: [+e.lat, +e.lon] });
+      }
+      if (onUpdate && out.length) onUpdate(out.slice(0, 12));
+    } catch (e) {}
+    await new Promise(r => setTimeout(r, 1100));          // Nominatim: soniyasiga 1 so'rov
+  }
+  return out.slice(0, 12);
 }
 
 /* ---------- Xarita ---------- */
@@ -410,7 +399,7 @@ async function goDistrict(k) {
   setA(inside ? S.gps : d.c, inside ? "Siz turgan joy" : `${d.name} markazi`);
   S.places = []; S.placesState = "loading"; render();
   spawnCars();
-  const pl = await loadPlaces(d.c);
+  const pl = await loadPlaces(d.c, part => { if (S.dk === k) { S.places = part; if (S.stage === "select") render(); } });
   if (S.dk === k) { S.places = pl; S.placesState = "done"; render(); }
 }
 
