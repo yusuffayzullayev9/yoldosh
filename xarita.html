@@ -242,11 +242,23 @@ async function placeName(p) {
 }
 const KIND = { bus_station: "Avtovokzal", marketplace: "Bozor", hospital: "Shifoxona", townhall: "Hokimiyat", college: "Kollej", university: "Universitet", supermarket: "Supermarket", park: "Bog‘", historic: "Tarixiy joy" };
 const KIND_ORDER = ["bus_station", "marketplace", "hospital", "townhall", "historic", "park", "supermarket", "college", "university"];
+const OVERPASS = ["https://overpass.kumi.systems/api/interpreter", "https://overpass-api.de/api/interpreter", "https://maps.mail.ru/osm/tools/overpass/api/interpreter"];
+function overpass(q) {
+  return Promise.any(OVERPASS.map(async u => {
+    const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 20000);
+    try {
+      const r = await fetch(u + "?data=" + encodeURIComponent(q), { signal: ctl.signal });
+      if (!r.ok) throw new Error("http");
+      const j = await r.json();
+      if (!j || !Array.isArray(j.elements)) throw new Error("bad");
+      return j;
+    } finally { clearTimeout(t); }
+  }));
+}
 async function loadPlaces(c) {
   const q = `[out:json][timeout:20];(nwr["amenity"~"^(marketplace|hospital|bus_station|townhall|college|university)$"](around:4500,${c[0]},${c[1]});nwr["shop"="supermarket"](around:4500,${c[0]},${c[1]});nwr["historic"~"^(monument|memorial|castle|ruins|building)$"]["name"](around:4500,${c[0]},${c[1]});nwr["leisure"="park"]["name"](around:4500,${c[0]},${c[1]}););out center 80;`;
   try {
-    const r = await fetch("https://overpass-api.de/api/interpreter", { method: "POST", body: "data=" + encodeURIComponent(q), headers: { "Content-Type": "application/x-www-form-urlencoded" } });
-    const j = await r.json(), seen = new Set(), out = [];
+    const j = await overpass(q), seen = new Set(), out = [];
     for (const e of j.elements) {
       const t = e.tags || {}, kind = t.amenity || (t.shop === "supermarket" ? "supermarket" : t.historic ? "historic" : t.leisure === "park" ? "park" : null);
       if (!kind || !KIND[kind]) continue;
@@ -268,8 +280,8 @@ L.control.zoom({ position: "topright" }).addTo(map);
 /* Xarita rasmlari: CARTO (OpenStreetMap asosida). Ishlamasa, avtomatik Esri'ga o'tadi. */
 const TILE_SOURCES = [
   { url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png", opt: { maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' } },
-  { url: "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", opt: { subdomains: "abcd", maxZoom: 19, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>' } },
-  { url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", opt: { maxZoom: 19, attribution: "Tiles &copy; Esri" } }
+  { url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", opt: { maxZoom: 19, attribution: "Tiles &copy; Esri" } },
+  { url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", opt: { subdomains: "abc", maxZoom: 17, attribution: '&copy; OpenStreetMap, OpenTopoMap' } }
 ];
 let tileIdx = 0, tileErr = 0, tileOk = 0, tiles = null;
 function useTiles(i) {
@@ -312,6 +324,7 @@ async function spawnCars() {
     cars.push(car);
   }
   badge();
+  if (S.stage === "select") render();
 }
 async function wander(car) {
   car.pending = true;
@@ -395,10 +408,10 @@ async function goDistrict(k) {
   map.setView(d.c, d.z);
   const inside = S.gps && hav(S.gps, d.c) < 12000;
   setA(inside ? S.gps : d.c, inside ? "Siz turgan joy" : `${d.name} markazi`);
-  S.places = []; render();
+  S.places = []; S.placesState = "loading"; render();
   spawnCars();
-  S.places = await loadPlaces(d.c);
-  if (S.dk === k) render();
+  const pl = await loadPlaces(d.c);
+  if (S.dk === k) { S.places = pl; S.placesState = "done"; render(); }
 }
 
 /* ---------- GPS ---------- */
@@ -437,7 +450,7 @@ function render() {
         <div class="pt"><span class="mk a">A</span><div><small>Qayerdan · pin‘ni surib aniqlang</small><b>${esc(S.Aname || "…")}</b></div></div>
         <div class="pt"><span class="mk b">B</span><div><small>Qayerga</small><b class="${S.B ? "" : "ph"}">${S.B ? esc(S.Bname) : "Xaritaga bosing yoki pastdan tanlang"}</b></div>${S.B ? `<span class="dist">${S.plan ? (m / 1000).toFixed(1) + " km" : "…"}</span>` : ""}</div>
       </div>
-      <div class="chips">${S.places.length ? S.places.map((p, i) => `<button class="chip" data-act="place" data-i="${i}">${esc(p.name)}<small>${p.name === KIND[p.kind] ? "" : KIND[p.kind]}</small></button>`).join("") : `<span class="hint">Mashhur joylar yuklanmoqda…</span>`}</div>
+      <div class="chips">${S.places.length ? S.places.map((p, i) => `<button class="chip" data-act="place" data-i="${i}">${esc(p.name)}<small>${p.name === KIND[p.kind] ? "" : KIND[p.kind]}</small></button>`).join("") : `<span class="hint">${S.placesState === "loading" ? "Mashhur joylar yuklanmoqda…" : "Mashhur joylar topilmadi. B nuqtani xaritaga bosib belgilang."}</span>`}</div>
       ${S.plan && S.plan.approx ? `<p class="hint">Yo‘l xizmati javob bermadi, masofa taxminiy hisoblandi.</p>` : ""}
       <div class="tariffs">${TAXI_T.map(x => `<button class="tariff ${S.tariff === x.id ? "on" : ""}" data-act="tariff" data-id="${x.id}"><span class="tn">${x.name}</span><span class="tp">${S.plan ? fmt(price(x, m)) : fmt(x.min) + "dan"}</span><span class="tm">${x.cars}<br>${carEta}</span></button>`).join("")}</div>
       <button class="btn" data-act="call" ${S.plan ? "" : "disabled"}>Taksi chaqirish${S.plan ? " · " + fmt(price(t, m)) : ""}</button>`;
