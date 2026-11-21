@@ -38,7 +38,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 [hidden]{display:none!important}
 
 .app{height:100%;max-width:480px;margin:0 auto;display:flex;flex-direction:column;background:var(--surface);border-inline:1px solid var(--line);overflow:hidden;position:relative;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-.top{display:flex;flex-direction:column;gap:8px;padding:9px max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px));border-bottom:1px solid var(--line);background:var(--surface);z-index:500}
+.top{display:flex;flex-direction:column;gap:8px;padding:9px max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px));border-bottom:1px solid var(--line);background:var(--surface);z-index:600;position:relative}
 .top-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .logo{display:flex;align-items:center;gap:9px;font-family:var(--font-display);font-weight:700;font-size:17px}
 .logo-mark{width:28px;height:28px;border-radius:9px;background:var(--accent);display:grid;place-items:center;color:var(--accent-ink)}
@@ -123,6 +123,20 @@ th{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercas
 td{padding:9px 8px;border-top:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
 th:first-child,td:first-child{text-align:left}
 
+/* qidiruv */
+.search{position:relative;display:flex;align-items:center;gap:8px;height:44px;padding:0 6px 0 12px;border-radius:12px;background:var(--surface-2);border:1px solid var(--line)}
+.search:focus-within{border-color:var(--accent)}
+.search svg{width:18px;height:18px;flex:0 0 18px;fill:none;stroke:var(--muted);stroke-width:2;stroke-linecap:round}
+.search input{flex:1;min-width:0;height:100%;border:0;background:none;color:var(--ink);font:inherit;font-size:16px;outline:none}
+.search input::-webkit-search-cancel-button{display:none}
+.qclear{width:34px;height:34px;border:0;border-radius:50%;background:none;color:var(--muted);font-size:22px;line-height:1}
+.results{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:800;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 24px var(--shadow);max-height:300px;overflow-y:auto}
+.res{display:flex;flex-direction:column;align-items:flex-start;gap:1px;width:100%;padding:10px 14px;border:0;border-bottom:1px solid var(--line);background:none;text-align:left}
+.res:last-child{border-bottom:0}
+.res:hover,.res:focus-visible{background:var(--surface-2)}
+.res b{font-weight:600}
+.res span{font-size:12px;color:var(--muted)}
+.res-note{padding:12px 14px;font-size:13px;color:var(--muted)}
 /* xarita belgilari */
 .car-ic{background:none;border:0}
 .car{width:26px;height:26px;display:grid;place-items:center;transition:transform .2s linear}
@@ -142,10 +156,15 @@ th:first-child,td:first-child{text-align:left}
 <div class="app">
   <header class="top">
     <div class="top-row">
-      <div class="logo"><span class="logo-mark" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.4"/></svg></span><div>Yo‘ldosh<small>Qashqadaryo · sinov versiyasi</small></div></div>
+      <div class="logo"><span class="logo-mark" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.4"/></svg></span><div>Yo‘ldosh<small>Shahrisabz · Kitob · Yakkabog‘</small></div></div>
       <span style="display:flex;gap:6px"><a class="hbtn" href="index.html" style="text-decoration:none">Barcha xizmatlar</a><button class="hbtn" id="pricesBtn">Narxlar</button></span>
     </div>
-    <div class="seg" id="districts" role="tablist" aria-label="Tuman"></div>
+    <div class="search" id="search" role="search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg>
+      <input id="q" type="search" placeholder="Qayerga borasiz? Masalan: bozor" autocomplete="off" enterkeyhint="search" aria-label="Qayerga">
+      <button class="qclear" id="qClear" aria-label="Tozalash" hidden>×</button>
+      <div class="results" id="results" hidden></div>
+    </div>
   </header>
   <div class="map-wrap">
     <div id="map" aria-label="Xarita"></div>
@@ -161,12 +180,15 @@ th:first-child,td:first-child{text-align:left}
 <script>
 (() => {
 "use strict";
-/* ---------- Tumanlar ---------- */
-const DISTRICTS = {
-  shahrisabz: { name: "Shahrisabz", c: [39.0500, 66.8330], z: 14 },
-  kitob:      { name: "Kitob",      c: [39.1336, 66.8819], z: 14 },
-  yakkabog:   { name: "Yakkabog‘",  c: [38.9800, 66.6800], z: 15 }
-};
+function problem(m) { toast(m); }
+/* ---------- Xizmat hududi: uchta tuman bitta xaritada ---------- */
+const TOWNS = [
+  { name: "Shahrisabz", c: [39.0500, 66.8330] },
+  { name: "Kitob",      c: [39.1336, 66.8819] },
+  { name: "Yakkabog‘",  c: [38.9800, 66.6800] }
+];
+const AREA = [66.60, 39.20, 66.96, 38.92];            // chap, yuqori, o'ng, past
+const nearestTown = p => TOWNS.reduce((a, t) => hav(p, t.c) < hav(p, a.c) ? t : a, TOWNS[0]);
 const TAXI_T = [
   { id: "eko", name: "Ekonom", cars: "Cobalt, Nexia", base: 7000, perKm: 1500, min: 8000 },
   { id: "kom", name: "Komfort", cars: "Gentra, Malibu", base: 9000, perKm: 2000, min: 11000 },
@@ -178,7 +200,13 @@ const DRIVERS = [
   ["Sherzod Aliyev","Gentra","qora","70 A 742 BC",4.95,"+998 93 470 12 05"],
   ["Bekzod Qodirov","Cobalt","oq","70 C 509 DA",4.7,"+998 94 318 90 22"],
   ["Ulug‘bek Sobirov","Lacetti","kulrang","70 A 066 RA",4.85,"+998 99 641 25 37"],
-  ["Otabek Yo‘ldoshev","Cobalt","ko‘k","70 B 884 KA",4.75,"+998 97 185 03 64"]
+  ["Otabek Yo‘ldoshev","Cobalt","ko‘k","70 B 884 KA",4.75,"+998 97 185 03 64"],
+  ["Javlon Rahmatov","Nexia 3","oq","70 A 318 TA",4.8,"+998 90 641 07 22"],
+  ["Sardor Ergashev","Cobalt","kumush","70 C 225 BA",4.9,"+998 91 330 58 14"],
+  ["Mirzo Toshpo‘latov","Gentra","oq","70 B 607 MA",4.85,"+998 93 218 44 70"],
+  ["Rustam Normatov","Spark","qizil","70 A 904 KA",4.7,"+998 94 502 13 66"],
+  ["Shohruh Qurbonov","Cobalt","oq","70 D 133 RA",4.9,"+998 97 711 28 05"],
+  ["Anvar Xolmatov","Malibu","qora","70 A 551 AA",4.95,"+998 99 460 92 31"]
 ];
 const KMH = 27;
 const round500 = n => Math.round(n / 500) * 500;
@@ -243,24 +271,30 @@ async function placeName(p) {
 const KIND = { bus_station: "Avtovokzal", marketplace: "Bozor", hospital: "Shifoxona", townhall: "Hokimiyat", college: "Kollej", university: "Universitet", supermarket: "Supermarket", park: "Bog‘", historic: "Tarixiy joy", school: "Maktab" };
 const KIND_ORDER = ["bus_station", "marketplace", "hospital", "townhall", "historic", "park", "supermarket", "college", "university"];
 const PLACE_CATS = [["marketplace","marketplace"],["hospital","hospital"],["bus station","bus_station"],["townhall","townhall"],["supermarket","supermarket"],["park","park"],["college","college"],["school","school"]];
-async function loadPlaces(c, onUpdate) {
-  const d = 0.045, vb = [c[1] - d, c[0] + d, c[1] + d, c[0] - d].join(","), seen = new Set(), out = [];
+async function loadPlaces(onUpdate) {
+  const vb = AREA.join(","), seen = new Set(), out = [];
   for (const [q, kind] of PLACE_CATS) {
     try {
       const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 10000);
-      const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(q)}&viewbox=${vb}&bounded=1&limit=4&accept-language=uz`, { signal: ctl.signal });
+      const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(q)}&viewbox=${vb}&bounded=1&limit=6&accept-language=uz`, { signal: ctl.signal });
       clearTimeout(t);
       const j = await r.json();
       for (const e of j) {
         const name = e.name || KIND[kind], key = name.toLowerCase();
         if (seen.has(key)) continue; seen.add(key);
-        out.push({ name, kind, p: [+e.lat, +e.lon] });
+        const p = [+e.lat, +e.lon];
+        out.push({ name, kind, p, town: nearestTown(p).name });
       }
-      if (onUpdate && out.length) onUpdate(out.slice(0, 12));
+      if (onUpdate && out.length) onUpdate(out.slice(0, 18));
     } catch (e) {}
     await new Promise(r => setTimeout(r, 1100));          // Nominatim: soniyasiga 1 so'rov
   }
-  return out.slice(0, 12);
+  return out.slice(0, 18);
+}
+async function searchPlaces(q, signal) {
+  const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(q)}&viewbox=${AREA.join(",")}&bounded=1&limit=8&accept-language=uz`, { signal });
+  const j = await r.json();
+  return j.map(e => { const p = [+e.lat, +e.lon], parts = e.display_name.split(","); return { name: e.name || parts[0], sub: parts.slice(1, 2).join(",").trim(), p, town: nearestTown(p).name }; });
 }
 
 /* ---------- Xarita ---------- */
@@ -293,31 +327,30 @@ const pinIcon = t => L.divIcon({ className: "pin-ic", html: `<div class="pin ${t
 const meIcon = L.divIcon({ className: "pin-ic", html: `<div class="me-dot"></div>`, iconSize: [18, 18], iconAnchor: [9, 9] });
 
 /* ---------- Holat ---------- */
-const S = { dk: "shahrisabz", A: null, Aname: "", gps: null, B: null, Bname: "", plan: null, tariff: "eko",
+const S = { A: null, Aname: "", gps: null, B: null, Bname: "", plan: null, tariff: "eko",
   stage: "select", car: null, price: 0, tok: 0, showPhone: false, rating: 0, places: [] };
 let markA = null, markB = null, markMe = null, planLine = null, liveLine = null;
 let cars = [];
-try { const d = localStorage.getItem("yoldosh-dk"); if (DISTRICTS[d]) S.dk = d; } catch (e) {}
 
 /* ---------- Soxta taksilar (haqiqiy ko'chalar bo'ylab yuradi) ---------- */
 function clearCars() { cars.forEach(c => map.removeLayer(c.m)); cars = []; }
 async function spawnCars() {
   clearCars();
-  const c = DISTRICTS[S.dk].c, gen = S.dk;
   for (let i = 0; i < DRIVERS.length; i++) {
-    const p = await osrmNearest(offset(c, 300 + Math.random() * 1400, Math.random() * 360));
-    if (S.dk !== gen) return;
+    const town = TOWNS[i % TOWNS.length];
+    const p = await osrmNearest(offset(town.c, 300 + Math.random() * 1400, Math.random() * 360));
     const r = DRIVERS[i];
-    const car = { name: r[0], model: r[1], color: r[2], plate: r[3], rating: r[4], phone: r[5], pos: p, ang: 0, route: null, s: 0, speed: 10, free: true, onArrive: null, wait: 1 + Math.random() * 4 };
+    const car = { name: r[0], model: r[1], color: r[2], plate: r[3], rating: r[4], phone: r[5], town, pos: p, ang: 0, route: null, s: 0, speed: 10, free: true, onArrive: null, wait: 1 + Math.random() * 4 };
     car.m = L.marker(p, { icon: carIcon(false), interactive: false, keyboard: false }).addTo(map);
     cars.push(car);
+    if (i % 3 === 2) badge();
   }
   badge();
   if (S.stage === "select") render();
 }
 async function wander(car) {
   car.pending = true;
-  const dest = offset(DISTRICTS[S.dk].c, 200 + Math.random() * 1500, Math.random() * 360);
+  const dest = offset(car.town.c, 200 + Math.random() * 1500, Math.random() * 360);
   const r = await osrmRoute(car.pos, dest);
   car.pending = false;
   if (!car.free || car.route || !cars.includes(car)) return;
@@ -385,22 +418,14 @@ function clearTrip() {
   markB = planLine = liveLine = null; S.B = null; S.plan = null;
 }
 
-/* ---------- Tuman almashtirish ---------- */
-function renderDistricts() {
-  document.getElementById("districts").innerHTML = Object.entries(DISTRICTS).map(([k, d]) => `<button role="tab" aria-selected="${k === S.dk}" class="${k === S.dk ? "on" : ""}" data-dk="${k}">${d.name}</button>`).join("");
-}
-async function goDistrict(k) {
-  if (S.stage !== "select" && S.stage !== "done") { toast("Avval joriy buyurtmani yakunlang yoki bekor qiling"); return; }
-  S.dk = k; try { localStorage.setItem("yoldosh-dk", k); } catch (e) {}
-  renderDistricts(); clearTrip(); S.stage = "select"; S.car = null;
-  const d = DISTRICTS[k];
-  map.setView(d.c, d.z);
-  const inside = S.gps && hav(S.gps, d.c) < 12000;
-  setA(inside ? S.gps : d.c, inside ? "Siz turgan joy" : `${d.name} markazi`);
+/* ---------- Boshlash: uchala tuman birga ---------- */
+async function start() {
+  map.fitBounds(L.latLngBounds(TOWNS.map(t => t.c)).pad(0.2));
+  setA(TOWNS[0].c, "Shahrisabz markazi");
   S.places = []; S.placesState = "loading"; render();
   spawnCars();
-  const pl = await loadPlaces(d.c, part => { if (S.dk === k) { S.places = part; if (S.stage === "select") render(); } });
-  if (S.dk === k) { S.places = pl; S.placesState = "done"; render(); }
+  const pl = await loadPlaces(part => { S.places = part; if (S.stage === "select") render(); });
+  S.places = pl; S.placesState = "done"; if (S.stage === "select") render();
 }
 
 /* ---------- GPS ---------- */
@@ -410,10 +435,8 @@ function locate(manual) {
     const p = [pos.coords.latitude, pos.coords.longitude];
     S.gps = p;
     if (!markMe) markMe = L.marker(p, { icon: meIcon, interactive: false }).addTo(map); else markMe.setLatLng(p);
-    const near = Object.entries(DISTRICTS).sort((a, b) => hav(p, a[1].c) - hav(p, b[1].c))[0];
-    if (hav(p, near[1].c) > 12000) { if (manual) toast("Siz xizmat hududidan tashqaridasiz. A nuqtani xaritada suring"); return; }
-    if (near[0] !== S.dk && S.stage === "select") { goDistrict(near[0]); return; }
-    if (S.stage === "select") { setA(p, "Siz turgan joy"); map.setView(p, 16); }
+    if (hav(p, nearestTown(p).c) > 15000) { if (manual) toast("Siz xizmat hududidan tashqaridasiz. A nuqtani xaritada suring"); return; }
+    if (S.stage === "select") { setA(p, "Siz turgan joy"); map.setView(p, 15); }
   }, () => { if (manual) toast("Joylashuvga ruxsat berilmadi. A nuqtani xaritada suring"); }, { enableHighAccuracy: true, timeout: 10000 });
 }
 
@@ -422,7 +445,7 @@ const sheet = document.getElementById("sheet"), toastEl = document.getElementByI
 let toastT; function toast(m) { toastEl.textContent = m; toastEl.classList.add("show"); clearTimeout(toastT); toastT = setTimeout(() => toastEl.classList.remove("show"), 2600); }
 function badge() {
   const free = cars.filter(c => c.free).length;
-  document.getElementById("badgeTxt").textContent = `${DISTRICTS[S.dk].name} · ${free} ta bo‘sh taksi (namuna)`;
+  document.getElementById("badgeTxt").textContent = `3 tuman · ${free} ta bo‘sh taksi (namuna)`;
 }
 const initials = n => n.split(" ").map(w => w[0]).join("").slice(0, 2);
 const plate = p => { const [reg, ...rest] = p.split(" "); return `<span class="plate"><span class="reg">${reg}</span><span class="pn">${rest.join(" ")}</span><span class="uz"><i></i>UZ</span></span>`; };
@@ -437,9 +460,9 @@ function render() {
     h = `
       <div class="trip">
         <div class="pt"><span class="mk a">A</span><div><small>Qayerdan · pin‘ni surib aniqlang</small><b>${esc(S.Aname || "…")}</b></div></div>
-        <div class="pt"><span class="mk b">B</span><div><small>Qayerga</small><b class="${S.B ? "" : "ph"}">${S.B ? esc(S.Bname) : "Xaritaga bosing yoki pastdan tanlang"}</b></div>${S.B ? `<span class="dist">${S.plan ? (m / 1000).toFixed(1) + " km" : "…"}</span>` : ""}</div>
+        <div class="pt"><span class="mk b">B</span><div><small>Qayerga</small><b class="${S.B ? "" : "ph"}">${S.B ? esc(S.Bname) : "Tepada yozing, xaritaga bosing yoki pastdan tanlang"}</b></div>${S.B ? `<span class="dist">${S.plan ? (m / 1000).toFixed(1) + " km" : "…"}</span>` : ""}</div>
       </div>
-      <div class="chips">${S.places.length ? S.places.map((p, i) => `<button class="chip" data-act="place" data-i="${i}">${esc(p.name)}<small>${p.name === KIND[p.kind] ? "" : KIND[p.kind]}</small></button>`).join("") : `<span class="hint">${S.placesState === "loading" ? "Mashhur joylar yuklanmoqda…" : "Mashhur joylar topilmadi. B nuqtani xaritaga bosib belgilang."}</span>`}</div>
+      <div class="chips">${S.places.length ? S.places.map((p, i) => `<button class="chip" data-act="place" data-i="${i}">${esc(p.name)}<small>${p.name === KIND[p.kind] ? p.town : KIND[p.kind] + " · " + p.town}</small></button>`).join("") : `<span class="hint">${S.placesState === "loading" ? "Mashhur joylar yuklanmoqda…" : "Mashhur joylar topilmadi. B nuqtani xaritaga bosib belgilang."}</span>`}</div>
       ${S.plan && S.plan.approx ? `<p class="hint">Yo‘l xizmati javob bermadi, masofa taxminiy hisoblandi.</p>` : ""}
       <div class="tariffs">${TAXI_T.map(x => `<button class="tariff ${S.tariff === x.id ? "on" : ""}" data-act="tariff" data-id="${x.id}"><span class="tn">${x.name}</span><span class="tp">${S.plan ? fmt(price(x, m)) : fmt(x.min) + "dan"}</span><span class="tm">${x.cars}<br>${carEta}</span></button>`).join("")}</div>
       <button class="btn" data-act="call" ${S.plan ? "" : "disabled"}>Taksi chaqirish${S.plan ? " · " + fmt(price(t, m)) : ""}</button>`;
@@ -513,7 +536,40 @@ sheet.addEventListener("click", e => {
     case "new": clearTrip(); S.car = null; S.stage = "select"; render(); break;
   }
 });
-document.getElementById("districts").addEventListener("click", e => { const b = e.target.closest("[data-dk]"); if (b && b.dataset.dk !== S.dk) goDistrict(b.dataset.dk); });
+/* ---------- "Qayerga" qidiruvi ---------- */
+const qEl = document.getElementById("q"), resEl = document.getElementById("results"), qClear = document.getElementById("qClear");
+let qTimer = null, qCtl = null, qList = [];
+function showResults(html) { resEl.innerHTML = html; resEl.hidden = !html; }
+function drawResults(list, note) {
+  qList = list;
+  showResults(list.map((r, i) => `<button class="res" data-i="${i}"><b>${esc(r.name)}</b><span>${esc([r.kind ? KIND[r.kind] : r.sub, r.town].filter(Boolean).join(" · "))}</span></button>`).join("") + (note ? `<div class="res-note">${note}</div>` : ""));
+}
+qEl.addEventListener("input", () => {
+  const q = qEl.value.trim(); qClear.hidden = !q;
+  clearTimeout(qTimer); if (qCtl) qCtl.abort();
+  if (q.length < 2) { showResults(""); return; }
+  const low = q.toLowerCase();
+  const local = S.places.filter(p => p.name.toLowerCase().includes(low) || (KIND[p.kind] || "").toLowerCase().includes(low) || p.town.toLowerCase().includes(low));
+  drawResults(local, "Qidirilmoqda…");
+  qTimer = setTimeout(async () => {
+    qCtl = new AbortController();
+    try {
+      const found = await searchPlaces(q, qCtl.signal);
+      const seen = new Set(local.map(p => p.name.toLowerCase()));
+      const all = local.concat(found.filter(f => !seen.has(f.name.toLowerCase())));
+      drawResults(all, all.length ? "" : "Hech narsa topilmadi. Boshqacha yozib ko‘ring yoki xaritaga bosing.");
+    } catch (e) { if (e.name !== "AbortError") drawResults(local, local.length ? "" : "Qidiruv ishlamadi. Xaritaga bosib belgilang."); }
+  }, 600);
+});
+qEl.addEventListener("focus", () => { if (qEl.value.trim().length >= 2) qEl.dispatchEvent(new Event("input")); });
+resEl.addEventListener("click", e => {
+  const b = e.target.closest("[data-i]"); if (!b) return;
+  const r = qList[+b.dataset.i];
+  if (S.stage !== "select") { toast("Avval joriy buyurtmani yakunlang yoki bekor qiling"); return; }
+  setB(r.p, r.name); qEl.value = ""; qClear.hidden = true; showResults(""); qEl.blur();
+});
+qClear.addEventListener("click", () => { qEl.value = ""; qClear.hidden = true; showResults(""); qEl.focus(); });
+document.addEventListener("click", e => { if (!e.target.closest("#search")) showResults(""); });
 document.getElementById("locBtn").addEventListener("click", () => locate(true));
 map.on("click", e => { if (S.stage === "select") setB([e.latlng.lat, e.latlng.lng]); });
 
@@ -528,8 +584,7 @@ document.getElementById("pricesBtn").addEventListener("click", () => {
 pricesEl.addEventListener("click", e => { if (e.target.closest("[data-close]")) pricesEl.hidden = true; });
 
 /* ---------- Ishga tushirish ---------- */
-renderDistricts();
-goDistrict(S.dk);
+start();
 locate(false);
 setInterval(live, 500);
 requestAnimationFrame(t => { lastT = t; tick(t); });
